@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Saathi — Cooperative Drive Safety</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #07110d;
+            color: #e8f5ed;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .bezel {
+            width: 100%;
+            max-width: 1100px;
+            background: #101c17;
+            border: 2px solid #294438;
+            border-radius: 24px;
+            padding: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .screen {
+            background: #0b1511;
+            border-radius: 18px;
+            overflow: hidden;
+            min-height: 700px;
+            position: relative;
+        }
+
+        /* TOP BAR */
+
+        .topbar {
+            height: 70px;
+            padding: 0 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #263b31;
+            background: #0e1914;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: #1d3529;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 21px;
+        }
+
+        .brand-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .brand-subtitle {
+            color: #89a99a;
+            font-size: 11px;
+            margin-top: 3px;
+        }
+
+        .network {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .live-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #42d98a;
+            box-shadow: 0 0 10px #42d98a;
+        }
+
+        .network-text {
+            font-size: 12px;
+            color: #9bb6a8;
+        }
+
+        .node-id {
+            font-family: monospace;
+            font-size: 11px;
+            color: #668277;
+        }
+
+        /* PRIVACY */
+
+        .privacy {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 22px;
+            background: #0a1812;
+            border-bottom: 1px solid #20362b;
+        }
+
+        .privacy-text {
+            font-size: 11px;
+            color: #89a99a;
+        }
+
+        .toggle {
+            position: relative;
+            width: 42px;
+            height: 22px;
+        }
+
+        .toggle input {
+            display: none;
+        }
+
+        .slider {
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            background: #30443a;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .slider::before {
+            content: "";
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            left: 3px;
+            top: 3px;
+            background: #d9e9df;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .toggle input:checked + .slider {
+            background: #28774e;
+        }
+
+        .toggle input:checked + .slider::before {
+            transform: translateX(20px);
+        }
+
+        /* MAIN GRID */
+
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 330px;
+            min-height: 530px;
+        }
+
+        #map {
+            padding: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #09130f;
+        }
+
+        #hud {
+            position: relative;
+            width: 100%;
+        }
+
+        /* RADAR */
+
+        .radar {
+            width: 360px;
+            height: 360px;
+            max-width: 80vw;
+            max-height: 80vw;
+            border-radius: 50%;
+            border: 1px solid #315344;
+            position: relative;
+            background:
+                radial-gradient(
+                    circle,
+                    rgba(52, 128, 86, 0.12) 0%,
+                    rgba(52, 128, 86, 0.05) 40%,
+                    transparent 70%
+                );
+            box-shadow:
+                0 0 0 1px rgba(66, 217, 138, 0.05),
+                inset 0 0 40px rgba(66, 217, 138, 0.04);
+        }
+
+        .ring {
+            position: absolute;
+            border: 1px solid #28483a;
+            border-radius: 50%;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .ring.r1 {
+            width: 70%;
+            height: 70%;
+        }
+
+        .ring.r2 {
+            width: 42%;
+            height: 42%;
+        }
+
+        .ring-label {
+            position: absolute;
+            font-size: 9px;
+            color: #527163;
+        }
+
+        .label-top {
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .label-right {
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* OWN VEHICLE */
+
+        .own-vehicle {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 38px;
+            height: 58px;
+            transform: translate(-50%, -50%);
+            background: #dceee3;
+            border-radius: 12px 12px 9px 9px;
+            box-shadow: 0 0 20px rgba(220, 238, 227, 0.2);
+        }
+
+        .own-vehicle::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: -18px;
+            transform: translateX(-50%);
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 15px solid #dceee3;
+        }
+
+        /* VEHICLES */
+
+        .vehicle-dot {
+            position: absolute;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid #07110d;
+        }
+
+        .vehicle-safe {
+            background: #42d98a;
+        }
+
+        .vehicle-warning {
+            background: #e5c15b;
+            box-shadow: 0 0 12px rgba(229, 193, 91, 0.5);
+        }
+
+        .vehicle-critical {
+            background: #e66a6a;
+            box-shadow: 0 0 14px rgba(230, 106, 106, 0.6);
+        }
+
+        /* ALERT BANNER */
+
+        #alert-banner {
+            display: none;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 85%;
+            padding: 13px 16px;
+            border-radius: 12px;
+            background: #4b2020;
+            border: 1px solid #a64e4e;
+            color: #ffdede;
+            text-align: center;
+            font-weight: 700;
+            z-index: 10;
+        }
+
+        /* SIDE PANEL */
+
+        .side-panel {
+            border-left: 1px solid #263b31;
+            background: #0d1914;
+            padding: 20px;
+        }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        .alert-card {
+            padding: 13px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            background: #13221b;
+            border: 1px solid #263b31;
+        }
+
+        .alert-card.warning {
+            border-color: #76672f;
+        }
+
+        .alert-card.critical {
+            border-color: #824141;
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 7px;
+        }
+
+        .alert-type {
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .alert-distance {
+            font-size: 10px;
+            color: #789286;
+        }
+
+        .alert-description {
+            font-size: 11px;
+            color: #a8beb2;
+            line-height: 1.4;
+        }
+
+        /* VEHICLE LIST */
+
+        .vehicle-list {
+            margin-top: 25px;
+        }
+
+        .vehicle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #1d3027;
+        }
+
+        .vehicle-info {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .mini-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+
+        .vehicle-name {
+            font-size: 11px;
+        }
+
+        .vehicle-meta {
+            font-size: 9px;
+            color: #6e887c;
+            margin-top: 2px;
+        }
+
+        .vehicle-status {
+            font-size: 9px;
+        }
+
+        /* BOTTOM BAR */
+
+        .bottom-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            padding: 15px 20px;
+            border-top: 1px solid #263b31;
+            background: #0e1914;
+        }
+
+        .action-btn {
+            border: 1px solid #2a493a;
+            background: #14251d;
+            color: #dceee3;
+            border-radius: 12px;
+            padding: 13px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #1c3328;
+        }
+
+        .action-btn.primary {
+            border-color: #39845b;
+        }
+
+        .action-btn.help {
+            border-color: #786331;
+        }
+
+        /* PRESENTER CONSOLE */
+
+        .presenter {
+            padding: 15px 20px;
+            background: #08110d;
+            border-top: 1px solid #263b31;
+        }
+
+        .presenter-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #607a6d;
+            margin-bottom: 10px;
+        }
+
+        .presenter-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .demo-btn {
+            border: 1px solid #304b3d;
+            background: #112018;
+            color: #9ab5a6;
+            border-radius: 8px;
+            padding: 7px 10px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        .demo-btn:hover {
+            background: #1a3024;
+            color: #d8e8de;
+        }
+
+        /* KEY AREA */
+
+        #keys {
+            display: none;
+        }
+
+        @media (max-width: 800px) {
+            .main {
+                grid-template-columns: 1fr;
+            }
+
+            .side-panel {
+                border-left: none;
+                border-top: 1px solid #263b31;
+            }
+
+            .bottom-bar {
+                grid-template-columns: 1fr;
+            }
+
+            .network .node-id {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="bezel">
+
+    <div class="screen">
+
+        <!-- TOP BAR -->
+        <header class="topbar">
+
+            <div class="brand">
+                <div class="brand-icon">🚗</div>
+
+                <div>
+                    <div class="brand-title">Saathi</div>
+                    <div class="brand-subtitle">
+                        See what's ahead. Help what's near.
+                    </div>
+                </div>
+            </div>
+
+            <div class="network">
+
+                <div class="live-dot"></div>
+
+                <div class="network-text">
+                    Network Live
+                </div>
+
+                <div class="node-id">
+                    Node: SA-7F2A
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- PRIVACY -->
+        <div class="privacy">
+
+            <div class="privacy-text">
+                Share my position anonymously with nearby EVs
+            </div>
+
+            <label class="toggle">
+                <input
+                    type="checkbox"
+                    id="sharePosition"
+                    checked
+                >
+                <span class="slider"></span>
+            </label>
+
+        </div>
+
+
+        <!-- MAIN AREA -->
+        <main class="main">
+
+            <!-- MAP / RADAR -->
+            <section id="map">
+
+                <div id="hud">
+
+                    <div id="alert-banner">
+                        Critical safety alert
+                    </div>
+
+                    <div
+                        class="radar"
+                        id="radar"
+                    >
+
+                        <div class="ring r1"></div>
+                        <div class="ring r2"></div>
+
+                        <div class="ring-label label-top">
+                            600m
+                        </div>
+
+                        <div class="ring-label label-right">
+                            300m
+                        </div>
+
+                        <div class="own-vehicle"></div>
+
+                        <!-- Nearby vehicles -->
+                        <div
+                            class="vehicle-dot vehicle-safe"
+                            style="left: 28%; top: 35%;"
+                            title="Vehicle V101"
+                        ></div>
+
+                        <div
+                            class="vehicle-dot vehicle-warning"
+                            style="left: 68%; top: 30%;"
+                            title="Vehicle V102"
+                        ></div>
+
+                        <div
+                            class="vehicle-dot vehicle-critical"
+                            style="left: 72%; top: 67%;"
+                            title="Vehicle V103"
+                        ></div>
+
+                        <div
+                            class="vehicle-dot vehicle-safe"
+                            style="left: 35%; top: 72%;"
+                            title="Vehicle V104"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- SIDE PANEL -->
+            <aside class="side-panel">
+
+                <div class="panel-title">
+                    Nearby Alerts
+                </div>
+
+                <div id="alertsFeed">
+
+                    <div class="alert-card warning">
+
+                        <div class="alert-header">
+
+                            <div class="alert-type">
+                                ⚠ Sudden Braking
+                            </div>
+
+                            <div class="alert-distance">
+                                180m
+                            </div>
+
+                        </div>
+
+                        <div class="alert-description">
+                            Vehicle ahead detected rapid deceleration.
+                        </div>
+
+                    </div>
+
+
+                    <div class="alert-card">
+
+                        <div class="alert-header">
+
+                            <div class="alert-type">
+                                ℹ Slow Vehicle
+                            </div>
+
+                            <div class="alert-distance">
+                                320m
+                            </div>
+
+                        </div>
+
+                        <div class="alert-description">
+                            Nearby vehicle travelling below normal speed.
+                        </div>
+
+                    </div>
+
+
+                    <div class="alert-card critical">
+
+                        <div class="alert-header">
+
+                            <div class="alert-type">
+                                ⚠ Collision Risk
+                            </div>
+
+                            <div class="alert-distance">
+                                95m
+                            </div>
+
+                        </div>
+
+                        <div class="alert-description">
+                            Critical proximity detected ahead.
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- VEHICLE LIST -->
+                <div class="vehicle-list">
+
+                    <div class="panel-title">
+                        Nearby Vehicles
+                    </div>
+
+                    <div id="vehList">
+
+                        <div class="vehicle-row">
+
+                            <div class="vehicle-info">
+
+                                <div class="mini-dot vehicle-safe"></div>
+
+                                <div>
+                                    <div class="vehicle-name">
+                                        Vehicle V101
+                                    </div>
+
+                                    <div class="vehicle-meta">
+                                        42 km/h · 180m
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="vehicle-status">
+                                SAFE
+                            </div>
+
+                        </div>
+
+
+                        <div class="vehicle-row">
+
+                            <div class="vehicle-info">
+
+                                <div class="mini-dot vehicle-warning"></div>
+
+                                <div>
+                                    <div class="vehicle-name">
+                                        Vehicle V102
+                                    </div>
+
+                                    <div class="vehicle-meta">
+                                        31 km/h · 320m
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="vehicle-status">
+                                WARNING
+                            </div>
+
+                        </div>
+
+
+                        <div class="vehicle-row">
+
+                            <div class="vehicle-info">
+
+                                <div class="mini-dot vehicle-critical"></div>
+
+                                <div>
+                                    <div class="vehicle-name">
+                                        Vehicle V103
+                                    </div>
+
+                                    <div class="vehicle-meta">
+                                        12 km/h · 95m
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="vehicle-status">
+                                CRITICAL
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </aside>
+
+        </main>
+
+
+        <!-- BOTTOM ACTIONS -->
+        <div class="bottom-bar">
+
+            <button
+                class="action-btn primary"
+                id="reportHazard"
+            >
+                ⚠ Report Hazard
+            </button>
+
+            <button
+                class="action-btn"
+                id="micButton"
+            >
+                🎙 Speak
+            </button>
+
+            <button
+                class="action-btn help"
+                id="needHelp"
+            >
+                🆘 Need Help
+            </button>
+
+        </div>
+
+
+        <!-- PRESENTER CONSOLE -->
+        <div class="presenter">
+
+            <div class="presenter-title">
+                Presenter Console — Demo Controls
+            </div>
+
+            <div class="presenter-buttons">
+
+                <button
+                    class="demo-btn"
+                    id="hardBrakeBtn"
+                >
+                    Trigger Hard Brake
+                </button>
+
+                <button
+                    class="demo-btn"
+                    id="potholeBtn"
+                >
+                    Trigger Pothole
+                </button>
+
+                <button
+                    class="demo-btn"
+                    id="helpDemoBtn"
+                >
+                    Trigger Help
+                </button>
+
+                <button
+                    class="demo-btn"
+                    id="privacyDemoBtn"
+                >
+                    Toggle Privacy
+                </button>
+
+                <button
+                    class="demo-btn"
+                    id="resetDemoBtn"
+                >
+                    Reset Demo
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- REQUIRED KEY CONTAINER -->
+        <div id="keys">
+            Keyboard controls will be connected in a later step.
+        </div>
+
+    </div>
+
+</div>
+
+<script type="module" src="./main.js"></script>
+
+</body>
+</html>
