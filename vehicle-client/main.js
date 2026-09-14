@@ -1,11 +1,31 @@
 // vehicle-client/main.js
 // Main wiring hub for the Vehicle Client.
 //
-// Step 7:
-// Connect the Saathi UI controls and prepare the vehicle-client
-// for the modules that will be added in later steps.
+// Current implementation:
+// - Saathi UI controls
+// - MQTT / V2V communication
+// - Sensor simulation
+// - Safety event detection
+// - V2V message creation
+// - Risk-level based V2V alerts
+// - Voice commands
+// - Text-to-Speech
+// - Privacy control
+// - Presenter demo controls
+// - Reset functionality
 
-import { connect, isConnected } from "../shared/mqtt.js";
+
+// --------------------------------------------------
+// IMPORTS
+// --------------------------------------------------
+
+import {
+    connect,
+    isConnected,
+    publish,
+    subscribe
+} from "../shared/mqtt.js";
+
 import { initializeMap } from "./ui/map.js";
 
 import {
@@ -13,13 +33,28 @@ import {
     startListening
 } from "./voice/stt.js";
 
+import {
+    getSensorData,
+    simulateNormalMovement,
+    simulateHardBrake,
+    simulateHazard,
+    simulateEmergency,
+    resetSensors
+} from "./sensors/simulated-sensor.js";
+
+import { processSensorData } from "./engine/event-engine.js";
+
+import { createV2VMessage } from "../shared/protocol.js";
+
 import { speak } from "./voice/tts.js";
+
 
 // --------------------------------------------------
 // DOM ELEMENTS
 // --------------------------------------------------
 
-const sharePosition = document.getElementById("sharePosition");
+const sharePosition =
+    document.getElementById("sharePosition");
 
 const reportHazardButton =
     document.getElementById("reportHazard");
@@ -64,12 +99,26 @@ const state = {
 // --------------------------------------------------
 
 async function initializeConnection() {
+
     try {
+
         await connect();
 
-        state.connected = isConnected();
+        state.connected =
+            isConnected();
 
-        console.log("Vehicle client connected to MQTT.");
+        console.log(
+            "Vehicle client connected to MQTT."
+        );
+
+        subscribe(
+            "v2v/safety",
+            handleV2VMessage
+        );
+
+        console.log(
+            "Listening for V2V safety messages."
+        );
 
     } catch (error) {
 
@@ -83,6 +132,110 @@ async function initializeConnection() {
             "This is normal if the backend/broker is not running."
         );
     }
+}
+
+
+// --------------------------------------------------
+// RECEIVE V2V SAFETY MESSAGE
+// --------------------------------------------------
+
+function handleV2VMessage(message) {
+
+    console.log(
+        "V2V MESSAGE RECEIVED:",
+        message
+    );
+
+    if (!message) {
+        return;
+    }
+
+    // Ignore our own messages.
+    const ownVehicleId =
+        getSensorData().vehicleId;
+
+    if (message.vehicleId === ownVehicleId) {
+        return;
+    }
+
+    let alertMessage = "";
+
+    // ----------------------------------------------
+    // EMERGENCY
+    // ----------------------------------------------
+
+    if (message.riskLevel === "EMERGENCY") {
+
+        alertMessage =
+            "EMERGENCY: Assistance required nearby.";
+
+    }
+
+    // ----------------------------------------------
+    // CRITICAL
+    // ----------------------------------------------
+
+    else if (message.riskLevel === "CRITICAL") {
+
+        if (message.messageType === "BRAKING") {
+
+            alertMessage =
+                "CRITICAL: Vehicle ahead is braking.";
+
+        }
+
+        else if (message.messageType === "COLLISION") {
+
+            alertMessage =
+                "CRITICAL: Collision risk nearby.";
+
+        }
+
+        else {
+
+            alertMessage =
+                "CRITICAL: Safety risk detected nearby.";
+        }
+    }
+
+    // ----------------------------------------------
+    // WARNING
+    // ----------------------------------------------
+
+    else if (message.riskLevel === "WARNING") {
+
+        if (message.messageType === "HAZARD") {
+
+            alertMessage =
+                "WARNING: Road hazard reported nearby.";
+
+        }
+
+        else if (message.messageType === "BREAKDOWN") {
+
+            alertMessage =
+                "WARNING: Vehicle breakdown reported nearby.";
+
+        }
+
+        else {
+
+            alertMessage =
+                "WARNING: Safety event detected nearby.";
+        }
+    }
+
+    // ----------------------------------------------
+    // SAFE / UNKNOWN
+    // ----------------------------------------------
+
+    else {
+
+        alertMessage =
+            "SAFE: Vehicle event received.";
+    }
+
+    showAlert(alertMessage);
 }
 
 
@@ -121,10 +274,51 @@ if (sharePosition) {
 
 function reportHazard() {
 
-    console.log("Hazard report requested.");
+    console.log(
+        "Hazard report requested."
+    );
 
+    // Simulate hazard detection.
+    simulateHazard();
+
+    const sensorData =
+        getSensorData();
+
+    console.log(
+        "Hazard Sensor Data:",
+        sensorData
+    );
+
+    // Process sensor data.
+    const events =
+        processSensorData(sensorData);
+
+    events.forEach((event) => {
+
+        console.log(
+            "SAFETY EVENT DETECTED:",
+            event
+        );
+
+        // Create standard V2V message.
+        const v2vMessage =
+            createV2VMessage(event);
+
+        console.log(
+            "V2V HAZARD MESSAGE CREATED:",
+            v2vMessage
+        );
+
+        // Broadcast hazard message.
+        publish(
+            "v2v/safety",
+            v2vMessage
+        );
+    });
+
+    // Alert current driver.
     showAlert(
-        "Hazard reported to nearby vehicles."
+        "WARNING: Hazard reported to nearby vehicles."
     );
 }
 
@@ -142,10 +336,6 @@ if (reportHazardButton) {
 // MICROPHONE
 // --------------------------------------------------
 
-// --------------------------------------------------
-// MICROPHONE
-// --------------------------------------------------
-
 if (micButton) {
 
     micButton.addEventListener(
@@ -153,14 +343,26 @@ if (micButton) {
         startListening
     );
 }
+
+
+// --------------------------------------------------
+// VOICE COMMAND PROCESSING
+// --------------------------------------------------
+
 function handleVoiceCommand(command) {
-    console.log("Processing voice command:", command);
+
+    console.log(
+        "Processing voice command:",
+        command
+    );
 
     if (
         command.includes("report hazard") ||
         command.includes("hazard")
     ) {
+
         reportHazard();
+
         return;
     }
 
@@ -169,25 +371,28 @@ function handleVoiceCommand(command) {
         command.includes("need a tow") ||
         command.includes("tow")
     ) {
+
         requestHelp();
+
         return;
     }
 
     if (
         command.includes("emergency")
     ) {
+
         showAlert(
-            "Emergency assistance requested.",
-            "critical"
+            "Emergency assistance requested."
         );
+
         return;
     }
 
     showAlert(
-        `Voice command not recognised: "${command}"`,
-        "warning"
+        `Voice command not recognised: "${command}"`
     );
 }
+
 
 // --------------------------------------------------
 // NEED HELP
@@ -199,8 +404,47 @@ function requestHelp() {
         "Help request initiated."
     );
 
+    // Simulate emergency condition.
+    simulateEmergency();
+
+    const sensorData =
+        getSensorData();
+
+    console.log(
+        "Emergency Sensor Data:",
+        sensorData
+    );
+
+    // Process sensor data.
+    const events =
+        processSensorData(sensorData);
+
+    events.forEach((event) => {
+
+        console.log(
+            "SAFETY EVENT DETECTED:",
+            event
+        );
+
+        // Create emergency V2V message.
+        const v2vMessage =
+            createV2VMessage(event);
+
+        console.log(
+            "EMERGENCY V2V MESSAGE CREATED:",
+            v2vMessage
+        );
+
+        // Broadcast emergency message.
+        publish(
+            "v2v/safety",
+            v2vMessage
+        );
+    });
+
+    // Alert current driver.
     showAlert(
-        "Help request initiated."
+        "EMERGENCY: Help request broadcast to nearby vehicles."
     );
 }
 
@@ -224,9 +468,54 @@ function triggerHardBrake() {
         "Demo: Hard brake triggered."
     );
 
-    showAlert(
-        "CRITICAL: Sudden braking detected!"
+    // Simulate hard braking.
+    simulateHardBrake();
+
+    const sensorData =
+        getSensorData();
+
+    console.log(
+        "Hard Brake Sensor Data:",
+        sensorData
     );
+
+    // The event engine requires two consecutive
+    // hard-braking ticks.
+    const events =
+        processSensorData(sensorData);
+
+    const secondEvents =
+        processSensorData(sensorData);
+
+    events.push(...secondEvents);
+
+    events.forEach((event) => {
+
+        console.log(
+            "SAFETY EVENT DETECTED:",
+            event
+        );
+
+        // Create V2V message.
+        const v2vMessage =
+            createV2VMessage(event);
+
+        console.log(
+            "HARD BRAKE V2V MESSAGE CREATED:",
+            v2vMessage
+        );
+
+        // Broadcast braking warning.
+        publish(
+            "v2v/safety",
+            v2vMessage
+        );
+
+        // Alert current driver.
+        showAlert(
+            "CRITICAL: Sudden braking detected!"
+        );
+    });
 }
 
 
@@ -249,9 +538,43 @@ function triggerPothole() {
         "Demo: Pothole hazard triggered."
     );
 
-    showAlert(
-        "WARNING: Road hazard reported."
+    simulateHazard();
+
+    const sensorData =
+        getSensorData();
+
+    console.log(
+        "Hazard Sensor Data:",
+        sensorData
     );
+
+    const events =
+        processSensorData(sensorData);
+
+    events.forEach((event) => {
+
+        console.log(
+            "SAFETY EVENT DETECTED:",
+            event
+        );
+
+        const v2vMessage =
+            createV2VMessage(event);
+
+        console.log(
+            "V2V MESSAGE CREATED:",
+            v2vMessage
+        );
+
+        publish(
+            "v2v/safety",
+            v2vMessage
+        );
+
+        showAlert(
+            "WARNING: Road hazard reported."
+        );
+    });
 }
 
 
@@ -265,18 +588,52 @@ if (potholeButton) {
 
 
 // --------------------------------------------------
-// PRESENTER DEMO — HELP
+// PRESENTER DEMO — HELP / EMERGENCY
 // --------------------------------------------------
 
 function triggerHelpDemo() {
 
     console.log(
-        "Demo: Help request triggered."
+        "Demo: Emergency triggered."
     );
 
-    showAlert(
-        "HELP: Assistance request broadcast."
+    simulateEmergency();
+
+    const sensorData =
+        getSensorData();
+
+    console.log(
+        "Emergency Sensor Data:",
+        sensorData
     );
+
+    const events =
+        processSensorData(sensorData);
+
+    events.forEach((event) => {
+
+        console.log(
+            "SAFETY EVENT DETECTED:",
+            event
+        );
+
+        const v2vMessage =
+            createV2VMessage(event);
+
+        console.log(
+            "V2V MESSAGE CREATED:",
+            v2vMessage
+        );
+
+        publish(
+            "v2v/safety",
+            v2vMessage
+        );
+
+        showAlert(
+            "EMERGENCY: Assistance request broadcast."
+        );
+    });
 }
 
 
@@ -329,7 +686,10 @@ function resetDemo() {
         "Demo reset."
     );
 
+    resetSensors();
+
     if (sharePosition) {
+
         sharePosition.checked = true;
     }
 
@@ -358,15 +718,19 @@ function showAlert(message) {
         return;
     }
 
-    alertBanner.textContent = message;
+    alertBanner.textContent =
+        message;
 
-    alertBanner.style.display = "block";
+    alertBanner.style.display =
+        "block";
 
-    // Speak the safety alert
+    // Speak safety alert.
     speak(message);
 
     setTimeout(() => {
+
         hideAlert();
+
     }, 4000);
 }
 
@@ -377,7 +741,53 @@ function hideAlert() {
         return;
     }
 
-    alertBanner.style.display = "none";
+    alertBanner.style.display =
+        "none";
+}
+
+
+// --------------------------------------------------
+// VEHICLE SENSOR SIMULATION
+// --------------------------------------------------
+
+function updateVehicleSensors() {
+
+    simulateNormalMovement();
+
+    const sensorData =
+        getSensorData();
+
+    console.log(
+        "Vehicle Sensor Data:",
+        sensorData
+    );
+
+    const events =
+        processSensorData(sensorData);
+
+    if (events.length > 0) {
+
+        events.forEach((event) => {
+
+            console.log(
+                "SAFETY EVENT DETECTED:",
+                event
+            );
+
+            const v2vMessage =
+                createV2VMessage(event);
+
+            console.log(
+                "V2V MESSAGE CREATED:",
+                v2vMessage
+            );
+
+            publish(
+                "v2v/safety",
+                v2vMessage
+            );
+        });
+    }
 }
 
 
@@ -395,10 +805,21 @@ function initializeVehicleClient() {
 
     initializeMap();
 
-    initializeSpeechRecognition(handleVoiceCommand);
+    initializeSpeechRecognition(
+        handleVoiceCommand
+    );
 
     initializeConnection();
+
+    setInterval(
+        updateVehicleSensors,
+        1000
+    );
 }
 
+
+// --------------------------------------------------
+// START APPLICATION
+// --------------------------------------------------
 
 initializeVehicleClient();

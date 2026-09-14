@@ -43,3 +43,52 @@ export const PROTOCOL = {
     VERSION: "1.0",
     SOURCE: "vehicle-client"
 };
+
+// Creates the standard message sent between vehicles.
+export function createV2VMessage(event) {
+    if (!event) {
+        return null;
+    }
+
+    return {
+        protocolVersion: PROTOCOL.VERSION,
+        source: PROTOCOL.SOURCE,
+        vehicleId: event.vehicleId,
+        messageType: event.type,
+        riskLevel: getRiskLevel(event),
+        latitude: event.latitude,
+        longitude: event.longitude,
+        speed: event.speed ?? null,
+        battery: event.battery ?? null,
+        timestamp: event.timestamp ?? Date.now()
+    };
+}
+// Determines the risk level of a V2V safety event.
+export function getRiskLevel(event) {
+
+    if (!event) {
+        return RISK_LEVELS.SAFE;
+    }
+
+    if (event.type === MESSAGE_TYPES.EMERGENCY) {
+        return RISK_LEVELS.EMERGENCY;
+    }
+
+    if (event.type === MESSAGE_TYPES.COLLISION) {
+        return RISK_LEVELS.CRITICAL;
+    }
+
+    if (event.type === MESSAGE_TYPES.BRAKING) {
+        return RISK_LEVELS.CRITICAL;
+    }
+
+    if (event.type === MESSAGE_TYPES.BREAKDOWN) {
+        return RISK_LEVELS.WARNING;
+    }
+
+    if (event.type === MESSAGE_TYPES.HAZARD) {
+        return RISK_LEVELS.WARNING;
+    }
+
+    return RISK_LEVELS.SAFE;
+}
