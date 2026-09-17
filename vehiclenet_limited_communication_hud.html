@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VehicleNet - V2V Limited Communication System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        hud: {
+                            bg: '#0a0e17',
+                            card: '#111827',
+                            border: '#1f293d',
+                            cyan: '#06b6d4',
+                            radar: '#10b981',
+                            amber: '#f59e0b',
+                            crimson: '#ef4444'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'Menlo', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #06090f;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .radar-grid {
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, rgba(6, 9, 15, 0.95) 75%);
+        }
+
+        .glow-cyan {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.35);
+        }
+
+        .glow-red {
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+        }
+
+        @keyframes sweep {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .radar-sweep-line {
+            transform-origin: bottom center;
+            animation: sweep 4s linear infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.95);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 0.3;
+            }
+
+            100% {
+                transform: scale(0.95);
+                opacity: 0.8;
+            }
+        }
+
+        .pulse-urgent {
+            animation: pulse-ring 1.5s ease-in-out infinite;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0b111e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1f293d;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #06b6d4;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col font-sans">
+
+    <header
+        class="h-16 border-b border-hud-border bg-hud-bg/90 backdrop-blur px-6 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-4">
+            <div
+                class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                <i class="fa-solid fa-satellite-dish text-xl"></i>
+            </div>
+            <div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-lg font-bold tracking-wider text-slate-100">VEHICLE<span
+                            class="text-cyan-400">NET</span></span>
+                    <span id="network-status-badge"
+                        class="px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded uppercase tracking-wider">V2V
+                        Standalone</span>
+                </div>
+                <p class="text-xs text-slate-400 font-mono">DSRC/C-V2X Mesh &bull; Node ID: <span id="self-id-badge"
+                        class="text-cyan-400 font-bold">VN-HOST</span></p>
+            </div>
+        </div>
+
+        <!-- Telemetry bar -->
+        <div class="hidden md:flex items-center space-x-8 font-mono text-sm">
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] uppercase text-slate-400">Speed</span>
+                <span class="text-slate-100 font-bold"><span id="hud-speed" class="text-emerald-400 text-base">62</span>
+                    km/h</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] uppercase text-slate-400">Heading</span>
+                <span class="text-slate-100 font-bold"><span id="hud-heading"
+                        class="text-cyan-400 text-base">042</span>&deg; NE</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] uppercase text-slate-400">Broadcast Radius</span>
+                <div class="flex items-center space-x-1 mt-0.5">
+                    <button onclick="setCommRange(150)"
+                        class="range-btn px-2 py-0.5 text-[11px] rounded bg-hud-card border border-hud-border text-slate-400 hover:text-cyan-400 transition"
+                        data-range="150">150m</button>
+                    <button onclick="setCommRange(300)"
+                        class="range-btn px-2 py-0.5 text-[11px] rounded bg-cyan-500/20 border border-cyan-500 text-cyan-300 transition"
+                        data-range="300">300m</button>
+                    <button onclick="setCommRange(600)"
+                        class="range-btn px-2 py-0.5 text-[11px] rounded bg-hud-card border border-hud-border text-slate-400 hover:text-cyan-400 transition"
+                        data-range="600">600m</button>
+                </div>
+            </div>
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] uppercase text-slate-400">Audio Feedback</span>
+                <button id="toggle-audio-btn" onclick="toggleAudio()"
+                    class="mt-0.5 text-xs text-emerald-400 flex items-center space-x-1 hover:underline">
+                    <i class="fa-solid fa-volume-high"></i>
+                    <span id="audio-label">Enabled</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <button onclick="openServerConfigModal()" id="lan-config-btn"
+                class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-700/60 text-cyan-300 transition flex items-center space-x-1.5 shadow-sm">
+                <i class="fa-solid fa-laptop-code text-cyan-400"></i>
+                <span id="server-ip-btn-text">Laptop Server: Auto</span>
+            </button>
+            <button onclick="toggleSimPanel()"
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-2">
+                <i class="fa-solid fa-gamepad"></i>
+                <span class="hidden sm:inline">Simulate Traffic</span>
+            </button>
+        </div>
+    </header>
+
+    <div id="urgent-alert-container" class="relative z-40 px-6 py-2 transition-all duration-300 hidden">
+        <div id="urgent-alert-card"
+            class="bg-red-950/80 border-2 border-red-500 text-red-100 rounded-xl p-3 px-5 flex items-center justify-between glow-red backdrop-blur">
+            <div class="flex items-center space-x-4">
+                <div
+                    class="w-10 h-10 rounded-full bg-red-600/30 flex items-center justify-center text-red-400 text-lg animate-bounce">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-mono font-bold uppercase tracking-wider text-red-300"
+                            id="alert-sender">VEHICLE #204</span>
+                        <span class="text-[10px] px-1.5 py-0.2 bg-red-600/40 text-red-200 rounded font-mono"
+                            id="alert-distance">78m AHEAD</span>
+                    </div>
+                    <div class="text-sm font-bold text-white tracking-wide" id="alert-message">EMERGENCY BRAKE APPLIED
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="acknowledgeAlert()"
+                    class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-check-double"></i>
+                    <span>ACKNOWLEDGE</span>
+                </button>
+                <button onclick="dismissUrgentAlert()" class="text-red-400 hover:text-white p-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+
+        <!-- COLUMN 1: Radar HUD & Nearby Vehicles (Col 12 to 5) -->
+        <section class="lg:col-span-5 border-r border-hud-border bg-hud-bg flex flex-col p-4 relative overflow-hidden">
+            <div class="flex items-center justify-between mb-2 z-10">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-crosshairs text-emerald-400"></i>
+                    <h2 class="text-xs font-bold uppercase tracking-widest text-slate-300">Proximity Radar View</h2>
+                </div>
+                <span
+                    class="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">
+                    <span id="active-peers-count">4</span> Nearby Peers
+                </span>
+            </div>
+
+            <!-- Radar Canvas Container -->
+            <div
+                class="flex-1 relative flex items-center justify-center min-h-[300px] rounded-2xl border border-hud-border bg-slate-950/80 overflow-hidden radar-grid">
+                <canvas id="radarCanvas" class="w-full h-full cursor-crosshair"></canvas>
+
+                <!-- Center Self-Vehicle indicator -->
+                <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div
+                        class="w-7 h-7 rounded-full bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center text-cyan-300 shadow-lg glow-cyan">
+                        <i class="fa-solid fa-arrow-up text-xs"></i>
+                    </div>
+                </div>
+
+                <!-- Radar Legend overlay -->
+                <div
+                    class="absolute bottom-2 left-3 text-[10px] font-mono text-slate-500 pointer-events-none flex space-x-3">
+                    <span class="flex items-center"><span
+                            class="w-2 h-2 rounded-full bg-emerald-400 inline-block mr-1"></span> Normal</span>
+                    <span class="flex items-center"><span
+                            class="w-2 h-2 rounded-full bg-amber-400 inline-block mr-1"></span> Alert/Caution</span>
+                    <span class="flex items-center"><span
+                            class="w-2 h-2 rounded-full bg-red-500 inline-block mr-1"></span> Critical Hazard</span>
+                </div>
+
+                <div class="absolute top-2 right-3 text-[10px] font-mono text-slate-500 pointer-events-none">
+                    RANGE: <span id="radar-range-display" class="text-slate-300 font-bold">300m</span>
+                </div>
+            </div>
+
+            <!-- Nearby Peer Vehicle Cards List -->
+            <div class="mt-3 flex flex-col h-44 overflow-y-auto pr-1 space-y-1.5" id="peer-vehicles-list">
+                <!-- Vehicle dynamic list inserted via JS -->
+            </div>
+        </section>
+
+        <!-- COLUMN 2: Driver-Safe Limited Communication Transmitter (Col 12 to 4) -->
+        <section class="lg:col-span-4 border-r border-hud-border bg-hud-card/70 flex flex-col p-5 overflow-y-auto">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-tower-broadcast text-cyan-400"></i>
+                    <h2 class="text-xs font-bold uppercase tracking-widest text-slate-200">Limited V2V Transmitter</h2>
+                </div>
+                <span
+                    class="text-[10px] font-mono px-2 py-0.5 bg-cyan-950 text-cyan-400 border border-cyan-800/40 rounded">
+                    1-Tap Driver Safe
+                </span>
+            </div>
+
+            <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+                Anti-distraction protocol: Standardized short telemetry pings. Select a transmission target and tap a
+                preset signal.
+            </p>
+
+            <!-- Target Selection Toggle -->
+            <div class="bg-slate-900/90 border border-hud-border rounded-xl p-3 mb-4">
+                <div class="flex items-center justify-between text-xs mb-2">
+                    <span class="text-slate-400 uppercase font-mono text-[10px]">Transmission Target</span>
+                    <span id="target-selection-label" class="text-cyan-400 font-semibold font-mono">Omni-Broadcast (All
+                        in Range)</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <button id="target-mode-broadcast" onclick="setTargetMode('broadcast')"
+                        class="py-1.5 px-3 rounded-lg bg-cyan-600 text-white font-medium border border-cyan-400 transition">
+                        <i class="fa-solid fa-bullhorn mr-1.5"></i>Broadcast (All)
+                    </button>
+                    <button id="target-mode-directed" onclick="setTargetMode('directed')"
+                        class="py-1.5 px-3 rounded-lg bg-slate-800 text-slate-400 hover:text-white border border-slate-700 transition">
+                        <i class="fa-solid fa-crosshairs mr-1.5"></i>Target Selected
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cooldown Indicator -->
+            <div id="tx-cooldown-bar-wrap" class="hidden mb-4">
+                <div class="flex justify-between text-[11px] font-mono text-slate-400 mb-1">
+                    <span>Channel Cooldown (Rate Limiter)</span>
+                    <span id="cooldown-timer-sec" class="text-cyan-400 font-bold">3.0s</span>
+                </div>
+                <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                    <div id="tx-cooldown-progress"
+                        class="bg-cyan-400 h-full w-full transition-all duration-100 ease-linear"></div>
+                </div>
+            </div>
+
+            <!-- Custom V2V Text Message Transmitter -->
+            <div class="bg-slate-900/90 border border-cyan-500/40 rounded-xl p-3 mb-4 shadow-lg glow-cyan">
+                <div class="flex items-center justify-between text-xs mb-2">
+                    <span class="text-cyan-400 font-bold uppercase font-mono text-[10px] flex items-center">
+                        <i class="fa-solid fa-paper-plane mr-1.5"></i>Custom V2V Text Message
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-mono">Real-time Transmission</span>
+                </div>
+                <div class="flex space-x-2 mb-2.5">
+                    <input id="custom-msg-text" type="text" placeholder="Type message for peer laptop..."
+                        onkeydown="if(event.key === 'Enter') sendCustomMessage()"
+                        class="flex-1 bg-slate-950 border border-slate-700 focus:border-cyan-400 rounded-lg px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition font-mono">
+                    <button onclick="sendCustomMessage()"
+                        class="comm-btn px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition shadow flex items-center shrink-0">
+                        <span>Send</span>
+                        <i class="fa-solid fa-paper-plane ml-1.5 text-[10px]"></i>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between pt-1 border-t border-slate-800">
+                    <span class="text-[10px] text-slate-400 font-mono">Message Severity:</span>
+                    <div class="flex items-center space-x-1.5">
+                        <button onclick="selectCustomSeverity('INFO')" id="sev-btn-INFO"
+                            class="sev-btn px-2 py-0.5 text-[10px] font-mono font-semibold rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500 transition">INFO</button>
+                        <button onclick="selectCustomSeverity('WARNING')" id="sev-btn-WARNING"
+                            class="sev-btn px-2 py-0.5 text-[10px] font-mono font-semibold rounded bg-slate-800 text-slate-400 border border-slate-700 hover:border-amber-600 transition">WARN</button>
+                        <button onclick="selectCustomSeverity('CRITICAL')" id="sev-btn-CRITICAL"
+                            class="sev-btn px-2 py-0.5 text-[10px] font-mono font-semibold rounded bg-slate-800 text-slate-400 border border-slate-700 hover:border-red-600 transition">CRITICAL</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pre-defined Limited Communication Button Categories -->
+            <div class="space-y-4">
+
+                <!-- Category 1: Urgent Safety & Hazard Alerts -->
+                <div>
+                    <span
+                        class="text-[10px] uppercase font-bold tracking-wider text-red-400 flex items-center space-x-1.5 mb-2">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span>Urgent Hazards</span>
+                    </span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="sendLimitedComm('EMERGENCY_BRAKE', 'Urgent: Hard Braking Ahead', 'CRITICAL')"
+                            class="comm-btn group p-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-left transition flex flex-col">
+                            <span class="text-xs font-bold text-red-300 group-hover:text-white flex items-center">
+                                <i class="fa-solid fa-octagon-exclamation mr-1.5 text-red-400"></i>Braking Hard
+                            </span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">Alert vehicles behind</span>
+                        </button>
+
+                        <button onclick="sendLimitedComm('HAZARD_ROAD', 'Road Hazard / Debris in Lane', 'WARNING')"
+                            class="comm-btn group p-2.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/60 text-left transition flex flex-col">
+                            <span class="text-xs font-bold text-amber-300 group-hover:text-white flex items-center">
+                                <i class="fa-solid fa-triangle-exclamation mr-1.5 text-amber-400"></i>Debris / Obstacle
+                            </span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">Warn oncoming/behind</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Category 2: Manuever & Lane Intents -->
+                <div>
+                    <span
+                        class="text-[10px] uppercase font-bold tracking-wider text-cyan-400 flex items-center space-x-1.5 mb-2">
+                        <i class="fa-solid fa-arrows-split-up-and-left"></i>
+                        <span>Driving Intents</span>
+                    </span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="sendLimitedComm('OVERTAKE_INTENT', 'Requesting Pass on Left Lane', 'INFO')"
+                            class="comm-btn group p-2.5 rounded-xl bg-slate-900 hover:bg-cyan-950/60 border border-slate-800 hover:border-cyan-600/50 text-left transition flex flex-col">
+                            <span class="text-xs font-bold text-slate-200 group-hover:text-cyan-300 flex items-center">
+                                <i class="fa-solid fa-arrow-turn-up mr-1.5 text-cyan-400"></i>Pass Request
+                            </span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">Overtaking intent</span>
+                        </button>
+
+                        <button onclick="sendLimitedComm('MERGE_REQUEST', 'Merging into Traffic Stream', 'INFO')"
+                            class="comm-btn group p-2.5 rounded-xl bg-slate-900 hover:bg-cyan-950/60 border border-slate-800 hover:border-cyan-600/50 text-left transition flex flex-col">
+                            <span class="text-xs font-bold text-slate-200 group-hover:text-cyan-300 flex items-center">
+                                <i class="fa-solid fa-code-merge mr-1.5 text-cyan-400"></i>Merge Request
+                            </span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">Yield requested</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Category 3: Road Courtesy & Safety Signals -->
+                <div>
+                    <span
+                        class="text-[10px] uppercase font-bold tracking-wider text-emerald-400 flex items-center space-x-1.5 mb-2">
+                        <i class="fa-solid fa-hand-holding-heart"></i>
+                        <span>Courtesy &amp; Vehicle Status</span>
+                    </span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="sendLimitedComm('COURTESY_THANKS', 'Thank you / Safe Driving!', 'COURTESY')"
+                            class="comm-btn group p-2.5 rounded-xl bg-slate-900 hover:bg-emerald-950/60 border border-slate-800 hover:border-emerald-600/50 text-left transition flex flex-col">
+                            <span
+                                class="text-xs font-bold text-slate-200 group-hover:text-emerald-300 flex items-center">
+                                <i class="fa-solid fa-thumbs-up mr-1.5 text-emerald-400"></i>Thank You!
+                            </span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">Courtesy ping</span>
+                        </button>
+
+                        <button
+                            onclick="sendLimitedComm('LIGHTS_NOTIFICATION', 'Check High Beams / Headlights', 'INFO')"
+                            class="comm-btn group p-2.5 rounded-xl bg-slate-900 hover:bg-amber-950/60 border border-slate-800 hover:border-amber-600/50 text-left transition flex flex-col">
+                            <span class="text-xs font-bold text-slate-200 group-hover:text-amber-300 flex items-center">
+                                <i class="fa-solid fa-lightbulb mr-1.5 text-amber-400"></i>High Beams On
+                            </span>
+                            <span class="text-[10px] text-slate-400 mt-0.5">Gentle headlight reminder</span>
+                        </button>
+
+                        <button
+                            onclick="sendLimitedComm('HELP_REQUEST', 'Breakdown: Need Roadside Assistance', 'CRITICAL')"
+                            class="comm-btn group col-span-2 p-2.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/60 text-left transition flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-solid fa-life-ring text-purple-400 text-base"></i>
+                                <div>
+                                    <span class="text-xs font-bold text-purple-200 group-hover:text-white">Emergency
+                                        Help Request</span>
+                                    <span class="block text-[10px] text-slate-400">Broadcast SOS for mechanical/medical
+                                        assistance</span>
+                                </div>
+                            </div>
+                            <span
+                                class="text-[10px] bg-purple-600/30 text-purple-300 px-2 py-1 rounded font-mono">SOS</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- COLUMN 3: Live Communication Mesh Stream & Inbound Log (Col 12 to 3) -->
+        <section class="lg:col-span-3 bg-hud-bg flex flex-col p-4 overflow-hidden">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-wave-square text-cyan-400"></i>
+                    <h2 class="text-xs font-bold uppercase tracking-widest text-slate-200">Mesh Stream</h2>
+                </div>
+                <button onclick="clearCommLog()"
+                    class="text-[10px] font-mono text-slate-500 hover:text-slate-300 transition">
+                    Clear Log
+                </button>
+            </div>
+
+            <!-- Inbound Comm Activity List -->
+            <div id="comm-messages-log" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs">
+                <!-- Dynamic incoming messages feed -->
+            </div>
+
+            <!-- Protocol Specifications Info Box -->
+            <div
+                class="mt-3 p-3 rounded-xl bg-slate-950/70 border border-hud-border font-mono text-[10px] text-slate-400">
+                <div class="flex items-center justify-between text-slate-300 mb-1">
+                    <span class="font-bold">Protocol Parameters</span>
+                    <span class="text-emerald-400">V2V-RFC 718</span>
+                </div>
+                <div class="flex justify-between py-0.5">
+                    <span>Max Packet Payload:</span>
+                    <span class="text-slate-200">64 bytes</span>
+                </div>
+                <div class="flex justify-between py-0.5">
+                    <span>Anti-Spam Delay:</span>
+                    <span class="text-slate-200">3.5s per vehicle</span>
+                </div>
+                <div class="flex justify-between py-0.5">
+                    <span>Packet TTL:</span>
+                    <span class="text-slate-200">15s auto-expire</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="sim-drawer"
+        class="fixed bottom-0 right-0 max-w-md w-full bg-slate-900/95 border-t border-l border-cyan-500/40 p-4 shadow-2xl backdrop-blur-md rounded-tl-2xl transform translate-y-full transition-transform duration-300 z-50">
+        <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-flask text-cyan-400"></i>
+                <h3 class="text-sm font-bold text-slate-100">V2V Traffic Simulator</h3>
+            </div>
+            <button onclick="toggleSimPanel()" class="text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-chevron-down"></i>
+            </button>
+        </div>
+
+        <p class="text-xs text-slate-400 mb-3">
+            Trigger simulated limited communication pings from peer vehicles to verify receiver warnings and radar
+            updates:
+        </p>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+            <button onclick="triggerSimEvent('BRAKE')"
+                class="p-2 rounded-lg bg-red-950/60 hover:bg-red-900 border border-red-700 text-red-200 text-left font-semibold transition">
+                <i class="fa-solid fa-car-burst mr-1 text-red-400"></i>Sim: Ahead Hard Brake
+            </button>
+            <button onclick="triggerSimEvent('OVERTAKE')"
+                class="p-2 rounded-lg bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-700 text-cyan-200 text-left font-semibold transition">
+                <i class="fa-solid fa-arrow-turn-up mr-1 text-cyan-400"></i>Sim: Rear Overtake
+            </button>
+            <button onclick="triggerSimEvent('HAZARD')"
+                class="p-2 rounded-lg bg-amber-950/60 hover:bg-amber-900 border border-amber-700 text-amber-200 text-left font-semibold transition">
+                <i class="fa-solid fa-triangle-exclamation mr-1 text-amber-400"></i>Sim: Road Debris Alert
+            </button>
+            <button onclick="triggerSimEvent('HELP')"
+                class="p-2 rounded-lg bg-purple-950/60 hover:bg-purple-900 border border-purple-700 text-purple-200 text-left font-semibold transition">
+                <i class="fa-solid fa-wrench mr-1 text-purple-400"></i>Sim: Breakdown SOS
+            </button>
+        </div>
+
+        <div class="mt-3 flex justify-between items-center pt-2 border-t border-slate-800">
+            <span class="text-xs text-slate-400">Spawn Random Peer:</span>
+            <button onclick="spawnRandomVehicle()"
+                class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 transition">
+                <i class="fa-solid fa-plus mr-1"></i>Add Vehicle
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /* VehicleNet Client State */
+        const APP_STATE = {
+            selfId: 'VN-' + Math.floor(1000 + Math.random() * 9000),
+            speed: 64,
+            heading: 42,
+            commRangeMeters: 300,
+            selectedTargetId: null, // null means broadcast
+            targetMode: 'broadcast',
+            audioEnabled: true,
+            isCooldownActive: false,
+            cooldownSeconds: 3.5,
+            activeAlert: null,
+            // Nearby vehicle nodes (empty by default until real laptop nodes or simulated sources are added)
+            peers: [],
+            // History of limited comm messages
+            commHistory: []
+        };
+
+        // Synthesizer using Web Audio API (Zero external audio files needed)
+        let audioCtx = null;
+        function playTone(freq, type = 'sine', duration = 0.15, vol = 0.1) {
+            if (!APP_STATE.audioEnabled) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                console.warn("Audio Context init error:", e);
+            }
+        }
+
+        function playSoundAlert(severity) {
+            if (severity === 'CRITICAL') {
+                playTone(880, 'sawtooth', 0.2, 0.15);
+                setTimeout(() => playTone(660, 'sawtooth', 0.25, 0.18), 120);
+                setTimeout(() => playTone(880, 'sawtooth', 0.35, 0.2), 300);
+            } else if (severity === 'WARNING') {
+                playTone(550, 'square', 0.18, 0.12);
+                setTimeout(() => playTone(440, 'square', 0.2, 0.12), 150);
+            } else {
+                playTone(600, 'sine', 0.12, 0.08);
+                setTimeout(() => playTone(900, 'sine', 0.12, 0.08), 100);
+            }
+        }
+
+        const radarCanvas = document.getElementById('radarCanvas');
+        const radarCtx = radarCanvas.getContext('2d');
+        let radarSweepAngle = 0;
+
+        function resizeRadar() {
+            const rect = radarCanvas.parentElement.getBoundingClientRect();
+            radarCanvas.width = rect.width;
+            radarCanvas.height = rect.height;
+        }
+        window.addEventListener('resize', resizeRadar);
+        setTimeout(resizeRadar, 100);
+
+        function renderRadar() {
+            const width = radarCanvas.width;
+            const height = radarCanvas.height;
+            if (!width || !height) {
+                requestAnimationFrame(renderRadar);
+                return;
+            }
+
+            radarCtx.clearRect(0, 0, width, height);
+            const cx = width / 2;
+            const cy = height / 2;
+            const maxRadius = Math.min(cx, cy) - 25;
+
+            // Draw concentric distance range rings
+            radarCtx.strokeStyle = 'rgba(16, 185, 129, 0.2)';
+            radarCtx.lineWidth = 1;
+            const rings = [0.25, 0.5, 0.75, 1.0];
+            rings.forEach((ratio, idx) => {
+                const r = maxRadius * ratio;
+                radarCtx.beginPath();
+                radarCtx.arc(cx, cy, r, 0, Math.PI * 2);
+                radarCtx.stroke();
+
+                // Distance label
+                radarCtx.fillStyle = 'rgba(16, 185, 129, 0.5)';
+                radarCtx.font = '10px monospace';
+                const distMark = Math.round((APP_STATE.commRangeMeters * ratio)) + 'm';
+                radarCtx.fillText(distMark, cx + 6, cy - r + 12);
+            });
+
+            // Crosshair lines
+            radarCtx.strokeStyle = 'rgba(16, 185, 129, 0.15)';
+            radarCtx.beginPath();
+            radarCtx.moveTo(cx, cy - maxRadius);
+            radarCtx.lineTo(cx, cy + maxRadius);
+            radarCtx.moveTo(cx - maxRadius, cy);
+            radarCtx.lineTo(cx + maxRadius, cy);
+            radarCtx.stroke();
+
+            // Animated sweep beam
+            radarSweepAngle = (radarSweepAngle + 0.025) % (Math.PI * 2);
+            const sweepGradient = radarCtx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius);
+            sweepGradient.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
+            sweepGradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+            radarCtx.save();
+            radarCtx.beginPath();
+            radarCtx.moveTo(cx, cy);
+            radarCtx.arc(cx, cy, maxRadius, radarSweepAngle - 0.35, radarSweepAngle);
+            radarCtx.closePath();
+            radarCtx.fillStyle = sweepGradient;
+            radarCtx.fill();
+
+            // Sweep leading line
+            radarCtx.strokeStyle = 'rgba(52, 211, 153, 0.8)';
+            radarCtx.beginPath();
+            radarCtx.moveTo(cx, cy);
+            radarCtx.lineTo(
+                cx + maxRadius * Math.cos(radarSweepAngle),
+                cy + maxRadius * Math.sin(radarSweepAngle)
+            );
+            radarCtx.stroke();
+            radarCtx.restore();
+
+            // Render Peer Vehicles
+            if (APP_STATE.peers.length === 0) {
+                radarCtx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+                radarCtx.font = '10px monospace';
+                radarCtx.textAlign = 'center';
+                radarCtx.fillText('NO LAPTOP SOURCE DETECTED', cx, cy + maxRadius - 15);
+                radarCtx.textAlign = 'left';
+            } else {
+                APP_STATE.peers.forEach(peer => {
+                    if (peer.distance > APP_STATE.commRangeMeters) return;
+
+                    // Relative bearing in radians (-90 deg means top of radar)
+                    const rad = (peer.bearing - 90) * (Math.PI / 180);
+                    const normDist = (peer.distance / APP_STATE.commRangeMeters) * maxRadius;
+                    const px = cx + normDist * Math.cos(rad);
+                    const py = cy + normDist * Math.sin(rad);
+
+                    peer._x = px;
+                    peer._y = py;
+
+                    // Pick color by status
+                    let dotColor = '#10b981'; // Green
+                    if (peer.status === 'WARNING') dotColor = '#f59e0b'; // Amber
+                    if (peer.status === 'CRITICAL') dotColor = '#ef4444'; // Red
+
+                    // Selected target highlight
+                    if (APP_STATE.selectedTargetId === peer.id) {
+                        radarCtx.strokeStyle = '#06b6d4';
+                        radarCtx.lineWidth = 2;
+                        radarCtx.beginPath();
+                        radarCtx.arc(px, py, 14, 0, Math.PI * 2);
+                        radarCtx.stroke();
+                    }
+
+                    // Dot fill
+                    radarCtx.fillStyle = dotColor;
+                    radarCtx.beginPath();
+                    radarCtx.arc(px, py, 5.5, 0, Math.PI * 2);
+                    radarCtx.fill();
+
+                    // ID text badge
+                    radarCtx.fillStyle = '#e2e8f0';
+                    radarCtx.font = '9px monospace';
+                    radarCtx.fillText(peer.id, px + 8, py - 6);
+                    radarCtx.fillStyle = 'rgba(148, 163, 184, 0.8)';
+                    radarCtx.fillText(`${Math.round(peer.distance)}m`, px + 8, py + 5);
+                });
+            }
+
+            requestAnimationFrame(renderRadar);
+        }
+        requestAnimationFrame(renderRadar);
+
+        // Click radar canvas to select a target vehicle
+        radarCanvas.addEventListener('click', (e) => {
+            const rect = radarCanvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            let clickedPeer = null;
+            APP_STATE.peers.forEach(peer => {
+                if (peer._x && peer._y) {
+                    const dist = Math.hypot(peer._x - clickX, peer._y - clickY);
+                    if (dist < 20) {
+                        clickedPeer = peer;
+                    }
+                }
+            });
+
+            if (clickedPeer) {
+                selectPeer(clickedPeer.id);
+            }
+        });
+
+        // WebSocket real-time backend connection state
+        let socket = null;
+        let isConnected = false;
+        let customServerHost = localStorage.getItem('vehiclenet_custom_host') || null;
+
+        function getBackendHost() {
+            if (customServerHost) return customServerHost;
+            if (window.location.protocol === 'file:') return 'localhost:8080';
+            return window.location.host || 'localhost:8080';
+        }
+
+        function initWebSocket() {
+            const host = getBackendHost();
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${host}/ws`;
+
+            const serverBtnText = document.getElementById('server-ip-btn-text');
+            if (serverBtnText) {
+                serverBtnText.textContent = `Server: ${host}`;
+            }
+
+            try {
+                if (socket) {
+                    socket.close();
+                }
+
+                socket = new WebSocket(wsUrl);
+
+                socket.addEventListener('open', () => {
+                    isConnected = true;
+                    console.log(`Connected to VehicleNet WebSocket Server at ${wsUrl}`);
+                    const statusBadge = document.getElementById('network-status-badge');
+                    if (statusBadge) {
+                        statusBadge.textContent = 'WS MESH LIVE';
+                        statusBadge.className = 'px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded uppercase tracking-wider';
+                    }
+
+                    socket.send(JSON.stringify({
+                        type: 'REGISTER',
+                        id: APP_STATE.selfId,
+                        label: 'Driver Display Unit',
+                        heading: APP_STATE.heading,
+                        speed: APP_STATE.speed,
+                        commRangeMeters: APP_STATE.commRangeMeters
+                    }));
+                });
+
+                socket.addEventListener('message', (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        switch (msg.type) {
+                            case 'REGISTERED':
+                                APP_STATE.selfId = msg.id;
+                                document.getElementById('self-id-badge').textContent = msg.id;
+                                if (msg.serverIp && serverBtnText) {
+                                    serverBtnText.textContent = `Server: ${msg.serverIp}:${msg.port || 8080}`;
+                                }
+                                break;
+                            case 'PEERS_UPDATE':
+                                if (Array.isArray(msg.peers)) {
+                                    APP_STATE.peers = msg.peers.map(p => {
+                                        const existing = APP_STATE.peers.find(ep => ep.id === p.id);
+                                        return {
+                                            id: p.id,
+                                            label: p.label || 'Vehicle Node',
+                                            distance: p.distance,
+                                            bearing: p.bearing,
+                                            speed: p.speed,
+                                            status: p.status !== 'NORMAL' ? p.status : (existing ? existing.status : 'NORMAL'),
+                                            lastPing: (existing && existing.lastPing && existing.lastPing !== 'Live Telemetry') ? existing.lastPing : 'Live Telemetry',
+                                            isRealClient: p.isRealClient || false
+                                        };
+                                    });
+                                    renderPeersList();
+                                }
+                                break;
+                            case 'COMM_RECEIVE':
+                                receiveInboundMessage(msg.packet);
+                                break;
+                            case 'COMM_SENT_ACK':
+                                appendCommMessage(msg.packet);
+                                break;
+                            case 'COOLDOWN_ACTIVE':
+                                activateTxCooldown();
+                                break;
+                            case 'DELIVERY_FAILED':
+                                console.warn('Delivery failed:', msg.reason, msg.targetId);
+                                appendCommMessage({
+                                    id: 'ERR-' + Math.floor(Math.random() * 1000),
+                                    senderId: 'SYSTEM',
+                                    targetId: msg.targetId,
+                                    code: 'DELIVERY_FAILED',
+                                    message: msg.reason || 'Failed to deliver signal',
+                                    severity: 'WARNING',
+                                    timestamp: new Date().toLocaleTimeString(),
+                                    direction: 'INBOUND'
+                                });
+                                break;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing WS message:', e);
+                    }
+                });
+
+                socket.addEventListener('close', () => {
+                    isConnected = false;
+                    const statusBadge = document.getElementById('network-status-badge');
+                    if (statusBadge) {
+                        statusBadge.textContent = 'STANDALONE SIM';
+                        statusBadge.className = 'px-2 py-0.5 text-[10px] font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded uppercase tracking-wider';
+                    }
+                });
+
+                socket.addEventListener('error', () => {
+                    isConnected = false;
+                });
+            } catch (err) {
+                console.warn('Could not initialize WebSocket:', err);
+            }
+        }
+
+        function sendLimitedComm(code, messageText, severity) {
+            if (APP_STATE.isCooldownActive) {
+                playTone(220, 'square', 0.1, 0.1);
+                return;
+            }
+
+            const targetId = APP_STATE.targetMode === 'directed' && APP_STATE.selectedTargetId
+                ? APP_STATE.selectedTargetId
+                : 'BROADCAST_ALL';
+
+            playSoundAlert(severity);
+            activateTxCooldown();
+
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'COMM_SEND',
+                    targetId,
+                    code,
+                    message: messageText,
+                    severity
+                }));
+            } else {
+                // Local simulation fallback
+                const packet = {
+                    id: 'TX-' + Math.floor(Math.random() * 10000),
+                    senderId: APP_STATE.selfId,
+                    targetId: targetId,
+                    code: code,
+                    message: messageText,
+                    severity: severity,
+                    timestamp: new Date().toLocaleTimeString(),
+                    direction: 'OUTBOUND'
+                };
+                appendCommMessage(packet);
+
+                if (targetId === 'BROADCAST_ALL') {
+                    APP_STATE.peers.forEach(peer => {
+                        peer.lastPing = `Rx: ${code}`;
+                    });
+                } else {
+                    const target = APP_STATE.peers.find(p => p.id === targetId);
+                    if (target) {
+                        target.lastPing = `Rx: ${code}`;
+                        setTimeout(() => {
+                            const ackPacket = {
+                                id: 'ACK-' + Math.floor(Math.random() * 1000),
+                                senderId: target.id,
+                                targetId: APP_STATE.selfId,
+                                code: 'ACK_SIGNAL',
+                                message: `Roger from ${target.id} (Distance: ${Math.round(target.distance)}m)`,
+                                severity: 'INFO',
+                                timestamp: new Date().toLocaleTimeString(),
+                                direction: 'INBOUND'
+                            };
+                            appendCommMessage(ackPacket);
+                            playTone(900, 'sine', 0.08, 0.08);
+                        }, 1200);
+                    }
+                }
+                renderPeersList();
+            }
+        }
+
+        function activateTxCooldown() {
+            APP_STATE.isCooldownActive = true;
+            const cooldownWrap = document.getElementById('tx-cooldown-bar-wrap');
+            const cooldownProgress = document.getElementById('tx-cooldown-progress');
+            const timerLabel = document.getElementById('cooldown-timer-sec');
+            const commButtons = document.querySelectorAll('.comm-btn');
+
+            cooldownWrap.classList.remove('hidden');
+            commButtons.forEach(btn => btn.classList.add('opacity-40', 'cursor-not-allowed'));
+
+            let remaining = APP_STATE.cooldownSeconds;
+            cooldownProgress.style.width = '100%';
+
+            const interval = setInterval(() => {
+                remaining -= 0.1;
+                if (remaining <= 0) {
+                    clearInterval(interval);
+                    APP_STATE.isCooldownActive = false;
+                    cooldownWrap.classList.add('hidden');
+                    commButtons.forEach(btn => btn.classList.remove('opacity-40', 'cursor-not-allowed'));
+                } else {
+                    timerLabel.textContent = remaining.toFixed(1) + 's';
+                    cooldownProgress.style.width = `${(remaining / APP_STATE.cooldownSeconds) * 100}%`;
+                }
+            }, 100);
+        }
+
+        function receiveInboundMessage(packet) {
+            appendCommMessage(packet);
+            playSoundAlert(packet.severity);
+
+            // If Critical or Warning, present heads-up banner
+            if (packet.severity === 'CRITICAL' || packet.severity === 'WARNING') {
+                showUrgentAlert(packet);
+            }
+
+            // Update sender status on radar
+            const sender = APP_STATE.peers.find(p => p.id === packet.senderId);
+            if (sender) {
+                sender.status = packet.severity;
+                sender.lastPing = packet.message;
+                renderPeersList();
+            }
+        }
+
+        function showUrgentAlert(packet) {
+            APP_STATE.activeAlert = packet;
+            const container = document.getElementById('urgent-alert-container');
+            const senderSpan = document.getElementById('alert-sender');
+            const distSpan = document.getElementById('alert-distance');
+            const msgSpan = document.getElementById('alert-message');
+
+            senderSpan.textContent = packet.senderId;
+            distSpan.textContent = packet.distance ? `${packet.distance}m AHEAD` : 'PROXIMITY RADAR';
+            msgSpan.textContent = packet.message;
+
+            container.classList.remove('hidden');
+        }
+
+        function acknowledgeAlert() {
+            if (!APP_STATE.activeAlert) return;
+            const ackCode = 'ACK_' + APP_STATE.activeAlert.code;
+            sendLimitedComm(ackCode, `Acknowledged ${APP_STATE.activeAlert.senderId}`, 'INFO');
+            dismissUrgentAlert();
+        }
+
+        function dismissUrgentAlert() {
+            document.getElementById('urgent-alert-container').classList.add('hidden');
+            APP_STATE.activeAlert = null;
+        }
+
+        function appendCommMessage(packet) {
+            APP_STATE.commHistory.unshift(packet);
+            const container = document.getElementById('comm-messages-log');
+
+            const isOut = packet.direction === 'OUTBOUND';
+            const card = document.createElement('div');
+            card.className = `p-2.5 rounded-xl border transition-all text-xs ${isOut
+                ? 'bg-slate-900/90 border-cyan-900/50 ml-3'
+                : (packet.severity === 'CRITICAL' ? 'bg-red-950/40 border-red-800/80 mr-3' : 'bg-slate-900/90 border-slate-800 mr-3')
+                }`;
+
+            let badgeColor = 'bg-cyan-500/20 text-cyan-300';
+            if (packet.severity === 'CRITICAL') badgeColor = 'bg-red-500/20 text-red-300 border border-red-500/30';
+            if (packet.severity === 'WARNING') badgeColor = 'bg-amber-500/20 text-amber-300 border border-amber-500/30';
+            if (packet.severity === 'COURTESY') badgeColor = 'bg-emerald-500/20 text-emerald-300';
+
+            card.innerHTML = `
+                <div class="flex items-center justify-between font-mono text-[10px] mb-1">
+                    <span class="font-bold flex items-center space-x-1">
+                        <i class="fa-solid ${isOut ? 'fa-arrow-up-from-bracket text-cyan-400' : 'fa-arrow-down text-emerald-400'}"></i>
+                        <span>${isOut ? 'YOU &rarr; ' + packet.targetId : packet.senderId}</span>
+                    </span>
+                    <span class="text-slate-500">${packet.timestamp}</span>
+                </div>
+                <div class="font-semibold text-slate-100 flex items-center justify-between">
+                    <span>${packet.message}</span>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded uppercase font-mono ${badgeColor}">
+                        ${packet.severity}
+                    </span>
+                </div>
+            `;
+
+            container.insertBefore(card, container.firstChild);
+
+            // Cap items to 30
+            if (container.children.length > 30) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        function clearCommLog() {
+            APP_STATE.commHistory = [];
+            document.getElementById('comm-messages-log').innerHTML = `
+                <div class="text-center py-8 text-slate-600 font-mono text-xs">
+                    <i class="fa-solid fa-inbox text-2xl mb-2 block"></i>
+                    No communications logged yet.
+                </div>
+            `;
+        }
+
+        function renderPeersList() {
+            const listEl = document.getElementById('peer-vehicles-list');
+            const countEl = document.getElementById('active-peers-count');
+            if (countEl) countEl.textContent = APP_STATE.peers.length;
+            listEl.innerHTML = '';
+
+            if (APP_STATE.peers.length === 0) {
+                listEl.innerHTML = `
+                    <div class="p-4 text-center bg-slate-900/40 rounded-xl border border-slate-800/80 font-mono text-xs text-slate-500">
+                        <i class="fa-solid fa-laptop-slash text-xl mb-1.5 text-slate-600 block"></i>
+                        <span class="font-bold text-slate-400">No Laptop Source Found</span>
+                        <p class="text-[10px] text-slate-500 mt-0.5">No active laptop source available in range</p>
+                    </div>
+                `;
+                return;
+            }
+
+            APP_STATE.peers.forEach(peer => {
+                const isSelected = APP_STATE.selectedTargetId === peer.id;
+                const item = document.createElement('div');
+                item.className = `p-2 rounded-lg border transition cursor-pointer flex items-center justify-between ${isSelected
+                    ? 'bg-cyan-950/60 border-cyan-500 text-white shadow-sm'
+                    : 'bg-slate-900/60 hover:bg-slate-850 border-hud-border text-slate-300'
+                    }`;
+
+                let statusBadge = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span>`;
+                if (peer.status === 'WARNING') statusBadge = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>`;
+                if (peer.status === 'CRITICAL') statusBadge = `<span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>`;
+
+                const isLaptop = peer.isRealClient || peer.id.includes('LAPTOP') || (peer.label && peer.label.toLowerCase().includes('laptop'));
+                const liveBadge = isLaptop
+                    ? `<span class="text-[9px] px-1 py-0.2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded font-mono font-semibold">LAPTOP SOURCE</span>`
+                    : '';
+
+                item.innerHTML = `
+                    <div class="flex items-center space-x-2.5">
+                        ${statusBadge}
+                        <div>
+                            <div class="flex items-center space-x-1.5">
+                                <span class="font-mono font-bold text-xs">${peer.id}</span>
+                                ${liveBadge}
+                                <span class="text-[10px] text-slate-400">(${peer.label})</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500 font-mono">${peer.lastPing}</span>
+                        </div>
+                    </div>
+                    <div class="text-right font-mono">
+                        <span class="text-xs font-bold ${peer.distance < 100 ? 'text-amber-400' : 'text-slate-300'}">${Math.round(peer.distance)}m</span>
+                        <span class="block text-[10px] text-slate-500">${peer.speed} km/h</span>
+                    </div>
+                `;
+
+                item.onclick = () => selectPeer(peer.id);
+                listEl.appendChild(item);
+            });
+        }
+
+        function selectPeer(peerId) {
+            if (APP_STATE.selectedTargetId === peerId) {
+                // Deselect to broadcast
+                APP_STATE.selectedTargetId = null;
+                setTargetMode('broadcast');
+            } else {
+                APP_STATE.selectedTargetId = peerId;
+                setTargetMode('directed');
+            }
+        }
+
+        function setTargetMode(mode) {
+            APP_STATE.targetMode = mode;
+            const btnBroadcast = document.getElementById('target-mode-broadcast');
+            const btnDirected = document.getElementById('target-mode-directed');
+            const label = document.getElementById('target-selection-label');
+
+            if (mode === 'broadcast') {
+                btnBroadcast.className = 'py-1.5 px-3 rounded-lg bg-cyan-600 text-white font-medium border border-cyan-400 transition';
+                btnDirected.className = 'py-1.5 px-3 rounded-lg bg-slate-800 text-slate-400 hover:text-white border border-slate-700 transition';
+                label.textContent = 'Omni-Broadcast (All in Range)';
+                label.className = 'text-cyan-400 font-semibold font-mono';
+                APP_STATE.selectedTargetId = null;
+            } else {
+                btnDirected.className = 'py-1.5 px-3 rounded-lg bg-cyan-600 text-white font-medium border border-cyan-400 transition';
+                btnBroadcast.className = 'py-1.5 px-3 rounded-lg bg-slate-800 text-slate-400 hover:text-white border border-slate-700 transition';
+                if (APP_STATE.peers.length === 0) {
+                    APP_STATE.selectedTargetId = null;
+                    label.textContent = 'No Laptop Source Available';
+                    label.className = 'text-red-400 font-semibold font-mono';
+                } else {
+                    if (!APP_STATE.selectedTargetId) {
+                        APP_STATE.selectedTargetId = APP_STATE.peers[0].id;
+                    }
+                    label.textContent = `Target: ${APP_STATE.selectedTargetId || 'None Selected'}`;
+                    label.className = 'text-amber-400 font-semibold font-mono';
+                }
+            }
+            renderPeersList();
+        }
+
+        function setCommRange(meters) {
+            APP_STATE.commRangeMeters = meters;
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: 'SET_RANGE', rangeMeters: meters }));
+            }
+            document.querySelectorAll('.range-btn').forEach(btn => {
+                if (parseInt(btn.getAttribute('data-range')) === meters) {
+                    btn.className = 'range-btn px-2 py-0.5 text-[11px] rounded bg-cyan-500/20 border border-cyan-500 text-cyan-300 transition';
+                } else {
+                    btn.className = 'range-btn px-2 py-0.5 text-[11px] rounded bg-hud-card border border-hud-border text-slate-400 hover:text-cyan-400 transition';
+                }
+            });
+            document.getElementById('radar-range-display').textContent = meters + 'm';
+            renderPeersList();
+        }
+
+        function toggleAudio() {
+            APP_STATE.audioEnabled = !APP_STATE.audioEnabled;
+            const label = document.getElementById('audio-label');
+            const btn = document.getElementById('toggle-audio-btn');
+            if (APP_STATE.audioEnabled) {
+                label.textContent = 'Enabled';
+                btn.className = 'mt-0.5 text-xs text-emerald-400 flex items-center space-x-1 hover:underline';
+                btn.innerHTML = `<i class="fa-solid fa-volume-high"></i><span id="audio-label">Enabled</span>`;
+                playTone(600, 'sine', 0.1);
+            } else {
+                btn.className = 'mt-0.5 text-xs text-slate-500 flex items-center space-x-1 hover:underline';
+                btn.innerHTML = `<i class="fa-solid fa-volume-xmark"></i><span id="audio-label">Muted</span>`;
+            }
+        }
+
+        function toggleSimPanel() {
+            const drawer = document.getElementById('sim-drawer');
+            drawer.classList.toggle('translate-y-full');
+        }
+
+        function triggerSimEvent(type) {
+            const randomPeer = APP_STATE.peers[Math.floor(Math.random() * APP_STATE.peers.length)];
+            if (!randomPeer) return;
+
+            let mockPacket = null;
+            if (type === 'BRAKE') {
+                mockPacket = {
+                    id: 'INB-' + Math.floor(Math.random() * 10000),
+                    senderId: randomPeer.id,
+                    targetId: 'BROADCAST_ALL',
+                    code: 'EMERGENCY_BRAKE',
+                    message: 'HARD BRAKING: Collision avoidance active!',
+                    severity: 'CRITICAL',
+                    distance: Math.round(randomPeer.distance),
+                    timestamp: new Date().toLocaleTimeString(),
+                    direction: 'INBOUND'
+                };
+            } else if (type === 'OVERTAKE') {
+                mockPacket = {
+                    id: 'INB-' + Math.floor(Math.random() * 10000),
+                    senderId: randomPeer.id,
+                    targetId: APP_STATE.selfId,
+                    code: 'OVERTAKE_INTENT',
+                    message: 'Passing on left side - Maintain steady speed',
+                    severity: 'INFO',
+                    distance: Math.round(randomPeer.distance),
+                    timestamp: new Date().toLocaleTimeString(),
+                    direction: 'INBOUND'
+                };
+            } else if (type === 'HAZARD') {
+                mockPacket = {
+                    id: 'INB-' + Math.floor(Math.random() * 10000),
+                    senderId: randomPeer.id,
+                    targetId: 'BROADCAST_ALL',
+                    code: 'HAZARD_ROAD',
+                    message: 'Animal / Debris detected in center lane',
+                    severity: 'WARNING',
+                    distance: Math.round(randomPeer.distance),
+                    timestamp: new Date().toLocaleTimeString(),
+                    direction: 'INBOUND'
+                };
+            } else if (type === 'HELP') {
+                mockPacket = {
+                    id: 'INB-' + Math.floor(Math.random() * 10000),
+                    senderId: randomPeer.id,
+                    targetId: 'BROADCAST_ALL',
+                    code: 'HELP_REQUEST',
+                    message: 'Engine disabled: Hazard lights activated',
+                    severity: 'CRITICAL',
+                    distance: Math.round(randomPeer.distance),
+                    timestamp: new Date().toLocaleTimeString(),
+                    direction: 'INBOUND'
+                };
+            }
+
+            if (mockPacket) {
+                receiveInboundMessage(mockPacket);
+            }
+        }
+
+        function spawnRandomVehicle() {
+            const id = 'VN-' + Math.floor(1000 + Math.random() * 9000);
+            const dist = Math.floor(50 + Math.random() * (APP_STATE.commRangeMeters - 60));
+            const bearing = Math.floor(-170 + Math.random() * 340);
+            const speed = Math.floor(45 + Math.random() * 55);
+
+            APP_STATE.peers.push({
+                id: id,
+                label: 'Simulated Vehicle',
+                distance: dist,
+                bearing: bearing,
+                speed: speed,
+                status: 'NORMAL',
+                lastPing: 'Connected',
+                isTarget: false
+            });
+
+            renderPeersList();
+            playTone(800, 'sine', 0.1, 0.05);
+        }
+
+        // Periodic slight telemetry jitter and server updates
+        setInterval(() => {
+            APP_STATE.speed = Math.min(95, Math.max(50, APP_STATE.speed + (Math.random() > 0.5 ? 1 : -1)));
+            document.getElementById('hud-speed').textContent = APP_STATE.speed;
+
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'POSITION_UPDATE',
+                    heading: APP_STATE.heading,
+                    speed: APP_STATE.speed
+                }));
+            } else {
+                // Shift peer distances slightly in standalone simulation
+                APP_STATE.peers.forEach(peer => {
+                    peer.distance = Math.max(20, peer.distance + (Math.random() - 0.48) * 1.5);
+                    peer.bearing = (peer.bearing + (Math.random() - 0.5) * 0.8);
+                });
+            }
+        }, 1500);
+
+        /* Custom Message Severity Picker & Handler */
+        let selectedCustomSeverity = 'INFO';
+        function selectCustomSeverity(sev) {
+            selectedCustomSeverity = sev;
+            ['INFO', 'WARNING', 'CRITICAL'].forEach(s => {
+                const btn = document.getElementById('sev-btn-' + s);
+                if (!btn) return;
+                if (s === sev) {
+                    if (s === 'INFO') btn.className = 'sev-btn px-2 py-0.5 text-[10px] font-mono font-semibold rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500 transition';
+                    if (s === 'WARNING') btn.className = 'sev-btn px-2 py-0.5 text-[10px] font-mono font-semibold rounded bg-amber-500/20 text-amber-300 border border-amber-500 transition';
+                    if (s === 'CRITICAL') btn.className = 'sev-btn px-2 py-0.5 text-[10px] font-mono font-semibold rounded bg-red-500/20 text-red-300 border border-red-500 transition';
+                } else {
+                    btn.className = 'sev-btn px-2 py-0.5 text-[10px] font-mono font-semibold rounded bg-slate-800 text-slate-400 border border-slate-700 transition';
+                }
+            });
+        }
+
+        function sendCustomMessage() {
+            const input = document.getElementById('custom-msg-text');
+            if (!input) return;
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            sendLimitedComm('CUSTOM_MSG', msg, selectedCustomSeverity);
+            input.value = '';
+        }
+
+        /* Server Configuration Modal Handlers for Multi-Laptop Connectivity */
+        function openServerConfigModal() {
+            const modal = document.getElementById('server-config-modal');
+            const input = document.getElementById('modal-server-ip-input');
+            if (input) {
+                input.value = customServerHost || getBackendHost();
+            }
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeServerConfigModal() {
+            const modal = document.getElementById('server-config-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function applyCustomServerIp() {
+            const input = document.getElementById('modal-server-ip-input');
+            if (!input) return;
+            let val = input.value.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+            if (!val) return;
+
+            if (!val.includes(':')) {
+                val += ':8080';
+            }
+
+            customServerHost = val;
+            localStorage.setItem('vehiclenet_custom_host', val);
+            closeServerConfigModal();
+            initWebSocket();
+        }
+
+        function resetServerIpToAuto() {
+            customServerHost = null;
+            localStorage.removeItem('vehiclenet_custom_host');
+            closeServerConfigModal();
+            initWebSocket();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('self-id-badge').textContent = APP_STATE.selfId;
+            renderPeersList();
+            clearCommLog();
+            initWebSocket();
+
+            // Seed a welcome transmission notification
+            setTimeout(() => {
+                appendCommMessage({
+                    id: 'SYS-INIT',
+                    senderId: 'SYSTEM',
+                    targetId: APP_STATE.selfId,
+                    code: 'SYS_READY',
+                    message: 'VehicleNet DSRC Transceiver Online (802.11p/C-V2X WebSocket Ready)',
+                    severity: 'INFO',
+                    timestamp: new Date().toLocaleTimeString(),
+                    direction: 'INBOUND'
+                });
+            }, 600);
+        });
+    </script>
+
+    <!-- Multi-Laptop Server Connection Modal -->
+    <div id="server-config-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-cyan-500/50 rounded-2xl max-w-md w-full p-6 shadow-2xl relative glow-cyan">
+            <button onclick="closeServerConfigModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-400 text-lg">
+                    <i class="fa-solid fa-laptop-code"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white">Connect Multi-Laptop Mesh</h3>
+                    <p class="text-xs text-cyan-400 font-mono">DSRC / C-V2X V2V Inter-Device Gateway</p>
+                </div>
+            </div>
+
+            <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                To send real-time pings &amp; custom text messages between two laptops on the same Wi-Fi or LAN:
+            </p>
+
+            <ol class="text-xs text-slate-400 space-y-1.5 mb-4 list-decimal list-inside font-mono bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <li>Run backend on Laptop 1: <span class="text-emerald-400 font-bold">npm start</span></li>
+                <li>Copy the Multi-Laptop LAN URL in terminal (e.g. <span class="text-cyan-300 font-bold">192.168.1.15:8080</span>)</li>
+                <li>Enter the Host Laptop address below on Laptop 2:</li>
+            </ol>
+
+            <div class="mb-4">
+                <label class="block text-[11px] font-mono text-slate-400 uppercase mb-1">Host Laptop Address (IP:Port)</label>
+                <input id="modal-server-ip-input" type="text" placeholder="e.g. 192.168.1.15:8080 or 10.0.0.5:8080"
+                    onkeydown="if(event.key === 'Enter') applyCustomServerIp()"
+                    class="w-full bg-slate-950 border border-slate-700 focus:border-cyan-400 rounded-xl px-3.5 py-2 text-sm text-slate-100 placeholder-slate-600 font-mono focus:outline-none transition">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="applyCustomServerIp()"
+                    class="py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-lg transition flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-plug"></i>
+                    <span>Connect Laptop</span>
+                </button>
+                <button onclick="resetServerIpToAuto()"
+                    class="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700 transition flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Reset / Localhost</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
