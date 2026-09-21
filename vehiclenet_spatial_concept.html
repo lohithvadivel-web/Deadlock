@@ -68,31 +68,221 @@ const radarView=document.querySelector('.radar-view');
 document.querySelectorAll('[data-view]').forEach(function(button){button.addEventListener('click',function(){if(button.dataset.view==='radar')radarView.appendChild(sharedFocusPanel);if(button.dataset.view==='overview')overviewHero.appendChild(sharedFocusPanel);});});
 </script>
 <script>
-(()=>{
-	const radarView=document.querySelector('.radar-view');
-	const source=document.getElementById('radar-canvas');
-	if(!radarView||!source)return;
-	radarView.querySelector('.car-model')?.remove();
-	const disc=document.createElement('div');
-	disc.className='radar-disc';
-	const canvas=document.createElement('canvas');
-	canvas.setAttribute('aria-label','360 degree vehicle radar');
-	disc.appendChild(canvas);
-	radarView.insertBefore(disc,radarView.querySelector('.back-btn'));
-	const ctx=canvas.getContext('2d');
-	const nodes=[
-		{id:'VN-1182',label:'Northbound commuter',distance:84,bearing:-34,heading:18,speed:62,status:'LINKED',color:'#8ab99d'},
-		{id:'VN-0764',label:'Approaching vehicle',distance:146,bearing:58,heading:201,speed:54,status:'LINKED',color:'#8ea9c0'},
-		{id:'VN-3309',label:'Rear awareness node',distance:228,bearing:8,heading:356,speed:71,status:'CAUTION',color:'#c6a46a'}
-	];
-	let selected=null,scale=1;
-	function resize(){const r=disc.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);canvas.width=r.width*d;canvas.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);draw();}
-	function point(node){const size=canvas.clientWidth||canvas.width;const radius=size*.42*(node.distance/300);const angle=node.bearing*Math.PI/180;return{x:size/2+Math.sin(angle)*radius,y:size/2-Math.cos(angle)*radius,r:5+radius/70};}
-	function draw(){const size=canvas.clientWidth||canvas.width;if(!size)return;ctx.clearRect(0,0,size,size);const c=size/2;ctx.save();ctx.strokeStyle='rgba(142,169,192,.2)';ctx.lineWidth=1;[.25,.5,.75,1].forEach((ratio,i)=>{ctx.beginPath();ctx.arc(c,c,size*.42*ratio,0,Math.PI*2);ctx.stroke();ctx.fillStyle='rgba(129,144,158,.8)';ctx.font='9px Consolas';ctx.fillText((i+1)*75+' M',c+size*.42*ratio-18,c-5)});ctx.strokeStyle='rgba(142,169,192,.14)';ctx.beginPath();ctx.moveTo(c,size*.08);ctx.lineTo(c,size*.92);ctx.moveTo(size*.08,c);ctx.lineTo(size*.92,c);ctx.stroke();ctx.fillStyle='#81909e';ctx.font='9px Consolas';ctx.fillText('N',c-3,16);ctx.fillText('S',c-3,size-8);ctx.fillText('W',12,c+3);ctx.fillText('E',size-18,c+3);ctx.restore();nodes.forEach(node=>{const p=point(node),active=selected&&selected.id===node.id;ctx.save();if(active){ctx.strokeStyle='rgba(143,175,208,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,p.r+11+Math.sin(Date.now()/180)*2,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='rgba(143,175,208,.45)';ctx.beginPath();ctx.moveTo(p.x,p.y-p.r-9);ctx.lineTo(p.x,p.y-p.r-34);ctx.stroke()}ctx.fillStyle=node.color;ctx.shadowColor=node.color;ctx.shadowBlur=active?20:10;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#edf2f4';ctx.font=(active?'bold ':'')+'11px Consolas';ctx.fillText(node.id,p.x+11,p.y-5);ctx.fillStyle='#81909e';ctx.font='9px Consolas';ctx.fillText(node.distance+' M',p.x+11,p.y+9);ctx.restore()});ctx.save();ctx.translate(c,c);ctx.fillStyle='#dfeaec';ctx.strokeStyle='#90aebe';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(-11,-25,22,50,9);ctx.fill();ctx.stroke();ctx.fillStyle='#263b4a';ctx.beginPath();ctx.roundRect(-7,-17,14,18,5);ctx.fill();ctx.fillStyle='#8ea9c0';ctx.fillRect(-8,7,16,2);ctx.restore()}
-	function openFocus(node){selected=node;const p=point(node),x=p.x/(canvas.clientWidth||1)*100,y=p.y/(canvas.clientHeight||1)*100;disc.classList.add('is-focused');disc.style.transformOrigin=x+'% '+y+'%';disc.style.transform='translate(-50%,-46%) scale(1.18)';const panel=document.getElementById('focus-panel');if(panel){radarView.appendChild(panel);panel.style.left=Math.max(18,Math.min(68,x))+'%';panel.style.top=Math.max(25,Math.min(70,y))+'%';panel.classList.add('is-open');panel.setAttribute('aria-hidden','false');document.getElementById('focus-id').textContent=node.id;document.getElementById('focus-label').textContent=node.label;document.getElementById('focus-distance').textContent=node.distance+' M';document.getElementById('focus-heading').textContent=String(node.heading).padStart(3,'0')+' DEG';document.getElementById('focus-speed').textContent=node.speed+' KM/H';document.getElementById('focus-connection').textContent=node.status}draw()}
-	canvas.addEventListener('click',event=>{const r=canvas.getBoundingClientRect(),x=event.clientX-r.left,y=event.clientY-r.top,size=r.width;const node=nodes.find(item=>{const p=point(item);return Math.hypot(p.x-x,p.y-y)<18});if(node)openFocus(node)});
-	document.getElementById('focus-close')?.addEventListener('click',()=>{selected=null;disc.classList.remove('is-focused');disc.style.transform='translate(-50%,-46%) scale(1)';});
-	window.addEventListener('resize',resize);resize();
+(() => {
+  const defaultPeers = [
+    {id:'VN-1182',label:'Northbound commuter',distance:84,bearing:-34,heading:18,speed:62,status:'LINKED',color:'#8ab99d'},
+    {id:'VN-0764',label:'Approaching vehicle',distance:146,bearing:58,heading:201,speed:54,status:'LINKED',color:'#8ea9c0'},
+    {id:'VN-3309',label:'Rear awareness node',distance:228,bearing:8,heading:356,speed:71,status:'CAUTION',color:'#c6a46a'}
+  ];
+
+  const APP_STATE = {
+    selfId: 'VN-2047',
+    peers: [...defaultPeers],
+    selectedTargetId: null,
+    targetMode: 'broadcast',
+    commRangeMeters: 300,
+    speed: 68,
+    heading: 42,
+    isCooldownActive: false,
+    activeAlert: null,
+    audioEnabled: true,
+    customServerHost: localStorage.getItem('vehiclenet_custom_host') || null
+  };
+
+  const radarView = document.querySelector('.radar-view');
+  const source = document.getElementById('radar-canvas');
+  if (!radarView || !source) return;
+
+  radarView.querySelector('.car-model')?.remove();
+  const disc = document.createElement('div');
+  disc.className = 'radar-disc';
+  const canvas = document.createElement('canvas');
+  canvas.setAttribute('aria-label', '360 degree vehicle radar');
+  disc.appendChild(canvas);
+  radarView.insertBefore(disc, radarView.querySelector('.back-btn'));
+  const ctx = canvas.getContext('2d');
+  let selected = null;
+
+  function getCurrentPeers() {
+    const peers = APP_STATE.peers && APP_STATE.peers.length ? APP_STATE.peers : defaultPeers;
+    return peers.map((peer, i) => ({
+      ...peer,
+      color: peer.color || ['#8ab99d', '#8ea9c0', '#c6a46a'][i % 3],
+      heading: peer.heading ?? 18,
+      speed: peer.speed ?? 60,
+      status: peer.status ?? 'LINKED'
+    }));
+  }
+
+  function updateOverviewSummary() {
+    const peers = getCurrentPeers();
+    const liveCount = peers.length;
+    const heading = document.querySelector('.hero-foot');
+    if (heading) heading.innerHTML = 'FIELD STATUS <b>' + (liveCount > 0 ? 'STABLE' : 'IDLE') + '</b> &nbsp; / &nbsp; ' + liveCount + ' NODE' + (liveCount === 1 ? '' : 'S') + ' IN RANGE';
+    const driver = document.querySelector('.metric-large');
+    if (driver) driver.innerHTML = APP_STATE.speed + ' <span>KM/H</span>';
+    const liveMeta = document.querySelector('.mini-item:nth-child(7) strong');
+    if (liveMeta) liveMeta.textContent = liveCount + ' ACTIVE';
+  }
+
+  function getBackendHost() {
+    if (APP_STATE.customServerHost) return APP_STATE.customServerHost;
+    if (window.location.protocol === 'file:') return 'localhost:8081';
+    return window.location.host || 'localhost:8081';
+  }
+
+  function initWebSocket() {
+    const host = getBackendHost();
+    const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${host}/ws`;
+    try {
+      if (window.__vehiclenet_socket) {
+        window.__vehiclenet_socket.close();
+      }
+      window.__vehiclenet_socket = new WebSocket(wsUrl);
+      window.__vehiclenet_socket.addEventListener('open', () => {
+        window.__vehiclenet_socket.send(JSON.stringify({ type: 'REGISTER', id: APP_STATE.selfId, label: 'Driver Display Unit', heading: APP_STATE.heading, speed: APP_STATE.speed, commRangeMeters: APP_STATE.commRangeMeters }));
+      });
+      window.__vehiclenet_socket.addEventListener('message', (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'REGISTERED') {
+          APP_STATE.selfId = msg.id;
+          const idBadge = document.getElementById('focus-id');
+          if (idBadge) idBadge.textContent = msg.id;
+        }
+        if (msg.type === 'PEERS_UPDATE' && Array.isArray(msg.peers)) {
+          APP_STATE.peers = msg.peers.map((p) => ({
+            id: p.id,
+            label: p.label || 'Vehicle Node',
+            distance: p.distance,
+            bearing: p.bearing,
+            speed: p.speed,
+            status: p.status || 'NORMAL',
+            color: p.isRealClient ? '#8ea9c0' : '#8ab99d',
+            lastPing: 'Live Telemetry'
+          }));
+          updateOverviewSummary();
+          renderRadar();
+        }
+      });
+    } catch (err) {
+      console.warn('WS init failed:', err);
+    }
+  }
+
+  function renderRadar() {
+    if (!canvas) return;
+    const nodes = getCurrentPeers();
+    const resize = () => {
+      const r = disc.getBoundingClientRect();
+      const d = Math.min(devicePixelRatio || 1, 2);
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+      ctx.setTransform(d, 0, 0, d, 0, 0);
+      draw();
+    };
+    function point(node) {
+      const size = canvas.clientWidth || canvas.width;
+      const radius = size * 0.42 * (node.distance / 300);
+      const angle = node.bearing * Math.PI / 180;
+      return { x: size / 2 + Math.sin(angle) * radius, y: size / 2 - Math.cos(angle) * radius, r: 5 + radius / 70 };
+    }
+    function draw() {
+      const size = canvas.clientWidth || canvas.width;
+      if (!size) return;
+      ctx.clearRect(0, 0, size, size);
+      const c = size / 2;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(142,169,192,.2)';
+      ctx.lineWidth = 1;
+      [0.25, 0.5, 0.75, 1].forEach((ratio) => {
+        ctx.beginPath();
+        ctx.arc(c, c, size * 0.42 * ratio, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      ctx.strokeStyle = 'rgba(142,169,192,.14)';
+      ctx.beginPath();
+      ctx.moveTo(c, size * 0.08); ctx.lineTo(c, size * 0.92); ctx.moveTo(size * 0.08, c); ctx.lineTo(size * 0.92, c); ctx.stroke();
+      ctx.restore();
+
+      nodes.forEach((node) => {
+        const p = point(node);
+        const active = selected && selected.id === node.id;
+        ctx.save();
+        if (active) {
+          ctx.strokeStyle = 'rgba(143,175,208,.9)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r + 11 + Math.sin(Date.now() / 180) * 2, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.fillStyle = node.color;
+        ctx.shadowColor = node.color;
+        ctx.shadowBlur = active ? 20 : 10;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#edf2f4';
+        ctx.font = (active ? 'bold ' : '') + '11px Consolas';
+        ctx.fillText(node.id, p.x + 11, p.y - 5);
+        ctx.fillStyle = '#81909e';
+        ctx.font = '9px Consolas';
+        ctx.fillText(node.distance + ' M', p.x + 11, p.y + 9);
+        ctx.restore();
+      });
+    }
+
+    function openFocus(node) {
+      selected = node;
+      const p = point(node);
+      const x = p.x / (canvas.clientWidth || 1) * 100;
+      const y = p.y / (canvas.clientHeight || 1) * 100;
+      disc.classList.add('is-focused');
+      disc.style.transformOrigin = x + '% ' + y + '%';
+      disc.style.transform = 'translate(-50%, -46%) scale(1.18)';
+      const panel = document.getElementById('focus-panel');
+      if (panel) {
+        radarView.appendChild(panel);
+        panel.style.left = Math.max(18, Math.min(68, x)) + '%';
+        panel.style.top = Math.max(25, Math.min(70, y)) + '%';
+        panel.classList.add('is-open');
+        panel.setAttribute('aria-hidden', 'false');
+        document.getElementById('focus-id').textContent = node.id;
+        document.getElementById('focus-label').textContent = node.label;
+        document.getElementById('focus-distance').textContent = node.distance + ' M';
+        document.getElementById('focus-heading').textContent = String(node.heading || 0).padStart(3, '0') + ' DEG';
+        document.getElementById('focus-speed').textContent = node.speed + ' KM/H';
+        document.getElementById('focus-connection').textContent = node.status || 'LINKED';
+      }
+      draw();
+    }
+
+    canvas.addEventListener('click', (event) => {
+      const r = canvas.getBoundingClientRect();
+      const x = event.clientX - r.left;
+      const y = event.clientY - r.top;
+      const node = nodes.find((item) => {
+        const p = point(item);
+        return Math.hypot(p.x - x, p.y - y) < 18;
+      });
+      if (node) openFocus(node);
+    });
+
+    document.getElementById('focus-close')?.addEventListener('click', () => {
+      selected = null;
+      disc.classList.remove('is-focused');
+      disc.style.transform = 'translate(-50%, -46%) scale(1)';
+      const panel = document.getElementById('focus-panel');
+      if (panel) panel.classList.remove('is-open');
+    });
+
+    window.addEventListener('resize', resize);
+    resize();
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    updateOverviewSummary();
+    renderRadar();
+    initWebSocket();
+  });
 })();
 </script>
 </body></html>
