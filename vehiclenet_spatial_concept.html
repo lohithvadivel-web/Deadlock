@@ -1,441 +1,2048 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VehicleNet | Spatial Cockpit</title>
-<style>
-:root{--bg:#070b11;--shell:#101722;--surface:rgba(23,31,42,.82);--text:#edf2f4;--muted:#81909e;--line:rgba(220,232,238,.1);--blue:#8ea9c0;--active:#7fafd0;--green:#8ab99d;--amber:#c6a46a;--red:#c97873;--sans:"Segoe UI",Arial,sans-serif;--mono:"SFMono-Regular",Consolas,monospace}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--text);font-family:var(--sans)}body{overflow:hidden}button{font:inherit;color:inherit}button:focus-visible{outline:2px solid var(--active);outline-offset:3px}
-.app{position:relative;width:100%;height:100%;padding:22px;background:radial-gradient(ellipse at 55% 42%,#1b2a3a 0,#0c121b 42%,#05080d 100%);overflow:hidden}.app:before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,rgba(255,255,255,.025),transparent 38%),radial-gradient(circle at 75% 20%,rgba(101,132,157,.1),transparent 28%);pointer-events:none}.shell{position:relative;width:100%;height:100%;display:grid;grid-template-columns:110px minmax(0,1fr);overflow:hidden;border:1px solid rgba(255,255,255,.1);border-radius:30px;background:linear-gradient(135deg,rgba(18,26,37,.96),rgba(8,12,18,.96));box-shadow:0 30px 80px rgba(0,0,0,.48),inset 0 1px rgba(255,255,255,.06)}
-.rail{z-index:20;display:flex;flex-direction:column;align-items:center;padding:24px 18px 18px;border-right:1px solid var(--line);background:rgba(7,12,18,.52);backdrop-filter:blur(18px)}.mark{width:42px;height:42px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.28);border-radius:14px;color:var(--text);font-weight:700;letter-spacing:-.08em;font-size:1.45rem}.rail-nav{display:grid;gap:18px;margin-top:88px;width:100%}.nav-btn{width:100%;height:54px;border:0;border-radius:16px;background:transparent;color:#778492;cursor:pointer;transition:.25s}.nav-btn:hover,.nav-btn.is-active{color:var(--text);background:rgba(143,175,201,.12)}.nav-btn.is-active{box-shadow:inset 3px 0 var(--active),inset 0 0 0 1px rgba(143,175,201,.2)}.nav-icon{display:block;font-size:12px;letter-spacing:.16em;font-weight:600;line-height:1}.rail-bottom{margin-top:auto;color:#687582;font-size:11px;letter-spacing:.22em;padding-top:12px}.rail-nav .nav-btn{display:grid;place-items:center}
-.workspace{position:relative;min-width:0;overflow:hidden}.topbar{height:82px;display:flex;align-items:center;justify-content:space-between;padding:0 38px;border-bottom:1px solid var(--line)}.eyebrow{color:var(--muted);font:10px var(--mono);letter-spacing:.18em}.title{margin-top:6px;font-size:18px;letter-spacing:.12em;font-weight:600}.title span{color:#98afc2}.status{display:flex;align-items:center;gap:9px;color:var(--green);font:10px var(--mono);letter-spacing:.1em}.status i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(138,185,157,.5)}.status.healthy,.healthy{color:var(--green)}.status.caution,.caution{color:var(--amber)}.status.hazard,.hazard{color:var(--red)}.status.healthy i{background:var(--green);box-shadow:0 0 10px rgba(138,185,157,.5)}.status.caution i{background:var(--amber);box-shadow:0 0 10px rgba(198,164,106,.5)}.status.hazard i{background:var(--red);box-shadow:0 0 10px rgba(201,120,115,.5)}.healthy{color:var(--green)}.caution{color:var(--amber)}.hazard{color:var(--red)}.top-actions{display:flex;align-items:center;gap:28px}.top-value{text-align:right}.top-value small{display:block;color:var(--muted);font:9px var(--mono);letter-spacing:.13em}.top-value strong{display:block;margin-top:4px;font:17px var(--mono)}
-.views{position:absolute;inset:76px 0 0}.view{position:absolute;inset:0;visibility:hidden;opacity:0;transform:translateY(8px);transition:.45s ease}.view.is-active{visibility:visible;opacity:1;transform:none}.overview{display:grid;grid-template-columns:minmax(0,1fr) 285px;grid-template-rows:minmax(0,1fr) 118px}.hero{position:relative;min-width:0;overflow:hidden;border-right:1px solid rgba(255,255,255,.06);background:linear-gradient(140deg, rgba(12,18,27,.32), rgba(6,11,18,.18) 32%, rgba(7,12,18,.35));}.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 15% 18%, rgba(120,165,203,.15), transparent 26%),radial-gradient(circle at 70% 28%, rgba(117,161,196,.09), transparent 30%),linear-gradient(180deg, rgba(255,255,255,.02), transparent 45%, rgba(5,9,14,.14));pointer-events:none}.hero-copy{position:absolute;z-index:8;top:45px;left:42px;max-width:420px;padding:18px 18px 14px 0}.hero-copy .eyebrow{color:#9aadbe}.hero-copy h1{margin:8px 0 0;font-size:clamp(30px,3vw,54px);font-weight:500;letter-spacing:-.06em;line-height:.96;max-width:350px}.hero-copy p{max-width:390px;margin:12px 0;color:var(--muted);font-size:13px;line-height:1.6}.quick-strip{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}.quick-chip{display:inline-flex;align-items:center;justify-content:center;padding:8px 10px;border:1px solid rgba(201,221,234,.12);border-radius:999px;background:rgba(14,22,31,.38);color:#bad1e0;font:9px var(--mono);letter-spacing:.18em;text-transform:uppercase;box-shadow:inset 0 1px rgba(255,255,255,.04);}.scene-canvas{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair;transition:transform .7s cubic-bezier(.2,.8,.2,1),filter .4s}.hero.is-focused .scene-canvas,.radar-view.is-focused .scene-canvas{transform:scale(1.16);filter:brightness(1.08);transform-origin:var(--focus-x,50%) var(--focus-y,50%)}.hero-foot{position:absolute;z-index:8;left:42px;bottom:29px;padding:12px 15px;border:1px solid rgba(161,189,209,.12);border-radius:12px;background:rgba(8,13,19,.24);backdrop-filter:blur(12px);color:var(--muted);font:10px var(--mono);letter-spacing:.12em}.hero-foot b{color:var(--active);font-weight:500}.hero-foot b.healthy{color:var(--green)}.hero-foot b.caution{color:var(--amber)}.hero-foot b.hazard{color:var(--red)}.side-panel{padding:31px 25px;border-left:1px solid var(--line);background:linear-gradient(180deg, rgba(9,15,22,.6), rgba(8,12,18,.82));}.section-kicker{color:var(--muted);font:10px var(--mono);letter-spacing:.16em}.metric-large{margin:14px 0 18px;font:42px var(--mono);letter-spacing:-.06em;color:#f4f8fb;text-shadow:0 0 20px rgba(155,196,223,.12)}.metric-large span{color:var(--muted);font-size:12px}.mini-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:15px}.mini-item{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px 12px;border:1px solid rgba(169,192,210,.12);border-radius:14px;background:linear-gradient(180deg,rgba(12,18,25,.92),rgba(10,14,20,.94));box-shadow:inset 0 1px rgba(255,255,255,.04), inset 0 0 0 1px rgba(120,162,188,.05), 0 10px 18px rgba(0,0,0,.16);font-size:12px;backdrop-filter:blur(14px)}.mini-item span{color:var(--muted);font-size:10px;letter-spacing:.09em;text-transform:uppercase}.mini-item strong{font:12px var(--mono);font-weight:400}.healthy{color:var(--green)!important}.caution{color:var(--amber)!important}.hazard{color:var(--red)!important}.quick-strip{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.quick-chip{padding:6px 9px;border:1px solid rgba(143,175,201,.24);border-radius:999px;background:rgba(143,175,201,.08);color:var(--text);font:9px var(--mono);letter-spacing:.12em;text-transform:uppercase}.control-row{display:flex;gap:8px;margin-top:20px}.quiet-btn{padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.035);color:var(--muted);font:10px var(--mono);cursor:pointer}.quiet-btn:hover{color:var(--text);border-color:rgba(255,255,255,.26)}.network-dock{display:flex;align-items:center;gap:22px;padding:0 31px;border-top:1px solid var(--line);background:rgba(5,9,14,.42)}.dock-title{font:10px var(--mono);letter-spacing:.14em;color:var(--muted)}.dock-events{display:flex;gap:28px;overflow:hidden;white-space:nowrap;color:var(--muted);font:10px var(--mono)}.dock-events b{color:var(--text);font-weight:400}.dock-events i{display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:var(--green)}
-.radar-view{position:relative}.radar-head{position:absolute;z-index:10;top:31px;left:42px}.radar-head h2{margin:8px 0;font-size:27px;font-weight:400}.radar-head p{margin:0;color:var(--muted);font-size:12px}.radar-meta{position:absolute;z-index:10;top:35px;right:38px;display:flex;gap:25px}.radar-meta div{text-align:right}.radar-meta small{display:block;color:var(--muted);font:9px var(--mono)}.radar-meta strong{display:block;margin-top:5px;font:15px var(--mono)}.back-btn{position:absolute;z-index:15;right:34px;bottom:29px;padding:10px 15px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.04);color:var(--muted);font:10px var(--mono);cursor:pointer}.back-btn:hover{color:var(--text);border-color:var(--active)}
-.focus-panel{position:absolute;z-index:30;width:270px;padding:18px;opacity:0;pointer-events:none;border:1px solid rgba(143,175,201,.38);border-radius:16px;background:rgba(20,28,38,.94);backdrop-filter:blur(20px);box-shadow:0 25px 60px rgba(0,0,0,.45);transform:translate(22px,-50%) scale(.8);transform-origin:left center;transition:opacity .3s,transform .65s cubic-bezier(.2,.8,.2,1),left .65s,top .65s}.focus-panel.is-open{opacity:1;pointer-events:auto;transform:translate(22px,-50%) scale(1)}.focus-panel:before{content:"";position:absolute;top:50%;left:-44px;width:44px;border-top:1px solid var(--active)}.focus-close{position:absolute;top:12px;right:12px;border:0;background:none;color:var(--muted);cursor:pointer}.focus-close:hover{color:var(--text)}.focus-kicker{color:var(--active);font:9px var(--mono);letter-spacing:.15em}.focus-panel h3{margin:7px 0 3px;font-size:19px;font-weight:500}.focus-panel p{margin:0;color:var(--muted);font-size:11px}.focus-data{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:19px;padding-top:14px;border-top:1px solid var(--line)}.focus-data small{display:block;color:var(--muted);font:9px var(--mono)}.focus-data strong{display:block;margin-top:5px;color:var(--text);font:12px var(--mono);font-weight:400}.focus-actions{display:flex;gap:7px;margin-top:17px}.focus-actions button{flex:1;padding:9px 4px;border:1px solid rgba(143,175,201,.28);border-radius:8px;background:rgba(143,175,201,.1);color:var(--active);font:9px var(--mono);cursor:pointer}.focus-actions button:hover{background:rgba(143,175,201,.2)}
-.network-view,.message-view{padding:44px 50px}.network-view h2,.message-view h2{margin:8px 0;font-size:32px;font-weight:400}.network-view>p,.message-view>p{color:var(--muted);font-size:13px}.network-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:760px;margin-top:38px}.network-card{padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}.network-card small{color:var(--muted);font:9px var(--mono);letter-spacing:.13em}.network-card strong{display:block;margin-top:12px;font:22px var(--mono)}.network-card p{margin:8px 0 0;color:var(--muted);font-size:12px}.message-line{display:flex;justify-content:space-between;max-width:700px;padding:20px 0;border-bottom:1px solid var(--line);font-size:13px}.message-line span{color:var(--muted);font:10px var(--mono)}
-@media(max-width:900px){body{overflow:auto}.app{padding:10px}.shell{min-height:760px;grid-template-columns:1fr;grid-template-rows:64px 1fr;border-radius:22px}.rail{grid-row:1;flex-direction:row;justify-content:space-between;padding:0 18px;border-right:0;border-bottom:1px solid var(--line)}.rail-nav{display:flex;margin:0;gap:3px}.nav-btn{width:39px;height:39px}.rail-bottom{margin:0}.topbar{position:absolute;z-index:25;top:64px;height:68px;left:0;right:0;padding:0 20px;background:rgba(8,13,19,.74);border-bottom:1px solid var(--line)}.top-actions{gap:13px}.top-value:first-child{display:none}.views{inset:132px 0 0}.overview{display:flex;flex-direction:column;overflow:auto}.hero{height:520px;min-height:520px}.side-panel{min-height:310px;border-left:0;border-top:1px solid var(--line)}.network-dock{min-height:84px;padding:0 20px}.dock-events{display:none}.radar-head{left:22px}.radar-meta{right:22px;gap:12px}.network-grid{grid-template-columns:1fr}.network-view,.message-view{padding:30px 24px}}
-@media(max-width:560px){.brand-sub{display:none}.brand-name{font-size:13px}.status span{display:none}.top-value:nth-child(2){display:none}.topbar{padding:0 17px}.hero-copy{left:22px;top:28px}.hero-copy h1{font-size:28px}.hero-copy p{max-width:260px}.side-panel{padding:25px 22px}.focus-panel{width:calc(100% - 32px);left:50%!important;top:45%!important;transform:translate(-50%,-50%) scale(.8)}.focus-panel.is-open{transform:translate(-50%,-50%) scale(1)}.focus-panel:before{display:none}.radar-meta{top:94px}.radar-head{top:27px}.radar-head h2{font-size:24px}.radar-view .scene-canvas{top:42px;height:calc(100% - 42px)}}
-@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}.radar-view{position:absolute}.radar-view .focus-panel{display:block;position:absolute}.radar-view .focus-panel.is-open{opacity:1}.radar-focus{display:none!important}.rail-nav{display:grid!important}.car-model{z-index:9!important;background:rgba(8,12,18,.99)!important;border-radius:48%;}.car-model{position:absolute;z-index:7;left:50%;bottom:4%;width:94px;height:154px;transform:translateX(-50%);pointer-events:none;filter:drop-shadow(0 12px 16px rgba(0,0,0,.5)) drop-shadow(0 0 10px rgba(142,169,192,.2))}
-.menu-trigger{width:42px;height:42px;margin-top:18px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.035);color:var(--text);cursor:pointer;font-size:20px;line-height:1}.menu-trigger:hover{border-color:var(--active);background:rgba(143,175,201,.14)}.menu-trigger span,.menu-trigger span:before,.menu-trigger span:after{display:block;width:16px;height:1px;margin:auto;background:currentColor;content:"";transition:.25s}.menu-trigger span:before{transform:translateY(-5px)}.menu-trigger span:after{transform:translateY(4px)}.rail.is-open .menu-trigger span{background:transparent}.rail.is-open .menu-trigger span:before{transform:translateY(0) rotate(45deg)}.rail.is-open .menu-trigger span:after{transform:translateY(-1px) rotate(-45deg)}.menu-drawer{position:absolute;z-index:50;top:25px;left:68px;width:248px;padding:18px;border:1px solid var(--line);border-radius:18px;background:rgba(18,26,37,.96);backdrop-filter:blur(20px);box-shadow:0 20px 50px rgba(0,0,0,.42);opacity:0;visibility:hidden;transform:translateX(-10px);transition:.25s}.rail.is-open .menu-drawer{opacity:1;visibility:visible;transform:none}.menu-heading{color:var(--muted);font:9px var(--mono);letter-spacing:.16em;margin-bottom:12px}.menu-item{display:flex;align-items:center;gap:12px;width:100%;padding:12px 10px;border:0;border-radius:10px;background:transparent;color:var(--muted);text-align:left;cursor:pointer}.menu-item:hover,.menu-item.is-active{background:rgba(143,175,201,.12);color:var(--text)}.menu-item b{font-size:13px;font-weight:500}.menu-item small{display:block;margin-top:3px;color:#697887;font:9px var(--mono)}.menu-mark{width:28px;color:var(--active);font:12px var(--mono);text-align:center}.car-model{position:absolute;z-index:7;left:50%;bottom:4%;width:94px;height:154px;transform:translateX(-50%);pointer-events:none;filter:drop-shadow(0 12px 16px rgba(0,0,0,.5)) drop-shadow(0 0 10px rgba(142,169,192,.2))}.car-model .car-body{fill:url(#carPaint);stroke:#d6e2e5;stroke-width:1.2}.car-model .car-glass{fill:#263b4a;stroke:#90aebe;stroke-width:1}.car-model .car-light{fill:#dbe9e7}.car-model .car-wheel{fill:#111820;stroke:#72838e;stroke-width:1}.car-model .car-detail{fill:none;stroke:rgba(226,239,241,.62);stroke-width:1}.car-model .car-label{fill:#9bb1bd;font:9px var(--mono);letter-spacing:1px}@media(max-width:900px){.menu-drawer{top:58px;left:18px}.menu-trigger{margin:0}.car-model{bottom:31%}}@media(max-width:560px){.car-model{bottom:32%;width:76px;height:125px}.menu-drawer{width:225px}}
-</style>
-<style>
-	.rail { position: relative; }
-	.car-model { z-index: 9 !important; bottom: -3% !important; }
-	@media (max-width: 900px) {
-		.topbar { top: 0 !important; }
-		.views { inset: 68px 0 0 !important; }
-      .rail-nav { display: flex !important; }
-		.car-model { bottom: -3% !important; }
-	}
-</style>
-<style>
-	.radar-view .radar-head, .radar-view .radar-meta, .radar-view .back-btn { z-index: 20; }
-	.radar-disc { position: absolute; z-index: 8; top: 52%; left: 50%; width: min(62vw, 620px); height: min(62vw, 620px); transform: translate(-50%, -50%); border: 1px solid rgba(156,189,214,.24); border-radius: 50%; background: radial-gradient(circle at center, rgba(34,50,62,.48), rgba(11,17,24,.82) 54%, rgba(5,9,15,.96)); box-shadow: inset 0 0 90px rgba(130,174,213,.08), inset 0 0 30px rgba(130,174,213,.06), 0 18px 50px rgba(0,0,0,.24), 0 0 24px rgba(122,166,204,.12); overflow: hidden; transition: transform .7s cubic-bezier(.2,.8,.2,1), filter .45s; }
-	.radar-view:has(.focus-panel.is-open) .radar-disc { transform: translate(-50%, -50%) scale(1.06); filter: brightness(1.15); }
-	.radar-disc.is-focused { filter: brightness(1.15); }
-	.radar-disc canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
-	.radar-disc::before { content: ''; position: absolute; inset: 10% 10%; border: 1px solid rgba(142,169,192,.12); border-radius: 50%; pointer-events: none; }
-	.radar-disc::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,.04), transparent 32%, transparent 68%, rgba(255,255,255,.03)); pointer-events: none; }
-	@media(max-width:900px){ .radar-disc{width:min(72vw,520px);height:min(72vw,520px);top:50%;} }
-	@media(max-width:560px){ .radar-disc{width:min(86vw,420px);height:min(86vw,420px);top:52%;} }
-</style>
-<style>
-.hero-center-display{position:absolute;z-index:9;left:50%;top:34%;width:min(330px,43%);transform:translate(-50%,-50%);padding:13px 16px 11px;border:1px solid rgba(180,207,225,.2);border-radius:16px;background:linear-gradient(180deg,rgba(18,27,37,.5),rgba(8,13,19,.65));backdrop-filter:blur(14px);box-shadow:0 16px 34px rgba(0,0,0,.16),inset 0 1px rgba(255,255,255,.06)}
-.hero-center-display:before{content:"";position:absolute;left:20px;right:20px;top:9px;height:1px;background:linear-gradient(90deg,transparent,rgba(190,220,237,.65),transparent)}
-.center-label{display:flex;align-items:center;gap:8px;color:#b6c9d7;font:9px var(--mono);letter-spacing:.18em;text-transform:uppercase}.center-label:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 12px rgba(138,185,157,.7)}
-.center-readout{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:13px}.center-stat{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}.center-readout strong{font:29px var(--mono);letter-spacing:-.08em;color:#f2f7fa}.center-readout span{padding-bottom:4px;color:var(--muted);font:8px var(--mono);letter-spacing:.12em;text-transform:uppercase;text-align:right}.center-bars{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:13px}.center-bars i{display:block;height:3px;border-radius:99px;background:linear-gradient(90deg,#80b9ce,#deeff5);box-shadow:0 0 10px rgba(128,185,206,.22)}
-.side-panel{background:linear-gradient(180deg,rgba(9,15,22,.68),rgba(7,11,17,.9))}.mini-list{display:grid;grid-template-columns:1fr;gap:9px;margin-top:13px}.mini-item{position:relative;display:block;padding:11px 12px 10px;border-radius:12px;border:1px solid rgba(169,192,210,.13);background:linear-gradient(180deg,rgba(15,23,31,.92),rgba(9,14,20,.96));box-shadow:inset 0 1px rgba(255,255,255,.045),0 9px 18px rgba(0,0,0,.13);overflow:hidden}.mini-item:before{content:"";position:absolute;left:12px;right:12px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--gauge-accent,#8ab99d),transparent)}.mini-item:after{content:"";display:block;height:4px;margin-top:9px;border-radius:99px;background:linear-gradient(90deg,var(--gauge-accent,#8ab99d) var(--gauge-level,72%),rgba(137,160,182,.12) var(--gauge-level,72%));box-shadow:0 0 12px var(--gauge-accent,#8ab99d)}.mini-item span{display:inline-block;color:var(--muted);font:9px var(--mono);letter-spacing:.12em;text-transform:uppercase}.mini-item strong{float:right;font:11px var(--mono);font-weight:500;color:#edf3f8}.mini-item:nth-child(2),.mini-item:nth-child(3),.mini-item:nth-child(6),.mini-item:nth-child(7){--gauge-accent:var(--green);--gauge-level:86%}.mini-item:nth-child(5){--gauge-accent:var(--amber);--gauge-level:58%}
-@media(max-width:900px){.hero-center-display{width:min(330px,56%);top:35%}.mini-list{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){.hero-center-display{width:calc(100% - 44px);top:32%}.mini-list{grid-template-columns:1fr}}
-.side-panel .hero-center-display{position:relative;left:auto;top:auto;width:auto;transform:none;margin:20px 0 0;padding:13px 14px 11px;border-radius:13px;background:rgba(18,27,37,.5);box-shadow:inset 0 1px rgba(255,255,255,.05)}.side-panel .center-readout{gap:10px}.side-panel .center-readout strong{font-size:23px}.side-panel .center-readout span{font-size:7px}.side-panel .center-bars{margin-top:11px}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VehicleNet | Spatial Cockpit</title>
+  <style>
+    :root {
+      --bg: #070b11;
+      --shell: #101722;
+      --surface: rgba(23, 31, 42, .82);
+      --text: #edf2f4;
+      --muted: #81909e;
+      --line: rgba(220, 232, 238, .1);
+      --blue: #8ea9c0;
+      --active: #7fafd0;
+      --green: #8ab99d;
+      --amber: #c6a46a;
+      --red: #c97873;
+      --sans: "Segoe UI", Arial, sans-serif;
+      --mono: "SFMono-Regular", Consolas, monospace
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans)
+    }
+
+    body {
+      overflow: hidden
+    }
+
+    button {
+      font: inherit;
+      color: inherit
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--active);
+      outline-offset: 3px
+    }
+
+    .app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      padding: 22px;
+      background: radial-gradient(ellipse at 55% 42%, #1b2a3a 0, #0c121b 42%, #05080d 100%);
+      overflow: hidden
+    }
+
+    .app:before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255, 255, 255, .025), transparent 38%), radial-gradient(circle at 75% 20%, rgba(101, 132, 157, .1), transparent 28%);
+      pointer-events: none
+    }
+
+    .shell {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 110px minmax(0, 1fr);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 30px;
+      background: linear-gradient(135deg, rgba(18, 26, 37, .96), rgba(8, 12, 18, .96));
+      box-shadow: 0 30px 80px rgba(0, 0, 0, .48), inset 0 1px rgba(255, 255, 255, .06)
+    }
+
+    .rail {
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 18px 18px;
+      border-right: 1px solid var(--line);
+      background: rgba(7, 12, 18, .52);
+      backdrop-filter: blur(18px)
+    }
+
+    .mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .28);
+      border-radius: 14px;
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing: -.08em;
+      font-size: 1.45rem
+    }
+
+    .rail-nav {
+      display: grid;
+      gap: 18px;
+      margin-top: 88px;
+      width: 100%
+    }
+
+    .nav-btn {
+      width: 100%;
+      height: 54px;
+      border: 0;
+      border-radius: 16px;
+      background: transparent;
+      color: #778492;
+      cursor: pointer;
+      transition: .25s
+    }
+
+    .nav-btn:hover,
+    .nav-btn.is-active {
+      color: var(--text);
+      background: rgba(143, 175, 201, .12)
+    }
+
+    .nav-btn.is-active {
+      box-shadow: inset 3px 0 var(--active), inset 0 0 0 1px rgba(143, 175, 201, .2)
+    }
+
+    .nav-icon {
+      display: block;
+      font-size: 12px;
+      letter-spacing: .16em;
+      font-weight: 600;
+      line-height: 1
+    }
+
+    .rail-bottom {
+      margin-top: auto;
+      color: #687582;
+      font-size: 11px;
+      letter-spacing: .22em;
+      padding-top: 12px
+    }
+
+    .rail-nav .nav-btn {
+      display: grid;
+      place-items: center
+    }
+
+    .workspace {
+      position: relative;
+      min-width: 0;
+      overflow: hidden
+    }
+
+    .topbar {
+      height: 82px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 38px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .eyebrow {
+      color: var(--muted);
+      font: 10px var(--mono);
+      letter-spacing: .18em
+    }
+
+    .title {
+      margin-top: 6px;
+      font-size: 18px;
+      letter-spacing: .12em;
+      font-weight: 600
+    }
+
+    .title span {
+      color: #98afc2
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--green);
+      font: 10px var(--mono);
+      letter-spacing: .1em
+    }
+
+    .status i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 10px rgba(138, 185, 157, .5)
+    }
+
+    .status.healthy,
+    .healthy {
+      color: var(--green)
+    }
+
+    .status.caution,
+    .caution {
+      color: var(--amber)
+    }
+
+    .status.hazard,
+    .hazard {
+      color: var(--red)
+    }
+
+    .status.healthy i {
+      background: var(--green);
+      box-shadow: 0 0 10px rgba(138, 185, 157, .5)
+    }
+
+    .status.caution i {
+      background: var(--amber);
+      box-shadow: 0 0 10px rgba(198, 164, 106, .5)
+    }
+
+    .status.hazard i {
+      background: var(--red);
+      box-shadow: 0 0 10px rgba(201, 120, 115, .5)
+    }
+
+    .healthy {
+      color: var(--green)
+    }
+
+    .caution {
+      color: var(--amber)
+    }
+
+    .hazard {
+      color: var(--red)
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 28px
+    }
+
+    .top-value {
+      text-align: right
+    }
+
+    .top-value small {
+      display: block;
+      color: var(--muted);
+      font: 9px var(--mono);
+      letter-spacing: .13em
+    }
+
+    .top-value strong {
+      display: block;
+      margin-top: 4px;
+      font: 17px var(--mono)
+    }
+
+    .views {
+      position: absolute;
+      inset: 76px 0 0
+    }
+
+    .view {
+      position: absolute;
+      inset: 0;
+      visibility: hidden;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: .45s ease
+    }
+
+    .view.is-active {
+      visibility: visible;
+      opacity: 1;
+      transform: none
+    }
+
+    .overview {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 285px;
+      grid-template-rows: minmax(0, 1fr) 118px
+    }
+
+    .hero {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      border-right: 1px solid rgba(255, 255, 255, .06);
+      background: linear-gradient(140deg, rgba(12, 18, 27, .32), rgba(6, 11, 18, .18) 32%, rgba(7, 12, 18, .35));
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 15% 18%, rgba(120, 165, 203, .15), transparent 26%), radial-gradient(circle at 70% 28%, rgba(117, 161, 196, .09), transparent 30%), linear-gradient(180deg, rgba(255, 255, 255, .02), transparent 45%, rgba(5, 9, 14, .14));
+      pointer-events: none
+    }
+
+    .hero-copy {
+      position: absolute;
+      z-index: 8;
+      top: 45px;
+      left: 42px;
+      max-width: 420px;
+      padding: 18px 18px 14px 0
+    }
+
+    .hero-copy .eyebrow {
+      color: #9aadbe
+    }
+
+    .hero-copy h1 {
+      margin: 8px 0 0;
+      font-size: clamp(30px, 3vw, 54px);
+      font-weight: 500;
+      letter-spacing: -.06em;
+      line-height: .96;
+      max-width: 350px
+    }
+
+    .hero-copy p {
+      max-width: 390px;
+      margin: 12px 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6
+    }
+
+    .quick-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px
+    }
+
+    .quick-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 10px;
+      border: 1px solid rgba(201, 221, 234, .12);
+      border-radius: 999px;
+      background: rgba(14, 22, 31, .38);
+      color: #bad1e0;
+      font: 9px var(--mono);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      box-shadow: inset 0 1px rgba(255, 255, 255, .04);
+    }
+
+    .scene-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      transition: transform .7s cubic-bezier(.2, .8, .2, 1), filter .4s
+    }
+
+    .hero.is-focused .scene-canvas,
+    .radar-view.is-focused .scene-canvas {
+      transform: scale(1.16);
+      filter: brightness(1.08);
+      transform-origin: var(--focus-x, 50%) var(--focus-y, 50%)
+    }
+
+    .hero-foot {
+      position: absolute;
+      z-index: 8;
+      left: 42px;
+      bottom: 29px;
+      padding: 12px 15px;
+      border: 1px solid rgba(161, 189, 209, .12);
+      border-radius: 12px;
+      background: rgba(8, 13, 19, .24);
+      backdrop-filter: blur(12px);
+      color: var(--muted);
+      font: 10px var(--mono);
+      letter-spacing: .12em
+    }
+
+    .hero-foot b {
+      color: var(--active);
+      font-weight: 500
+    }
+
+    .hero-foot b.healthy {
+      color: var(--green)
+    }
+
+    .hero-foot b.caution {
+      color: var(--amber)
+    }
+
+    .hero-foot b.hazard {
+      color: var(--red)
+    }
+
+    .side-panel {
+      padding: 31px 25px;
+      border-left: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(9, 15, 22, .6), rgba(8, 12, 18, .82));
+    }
+
+    .section-kicker {
+      color: var(--muted);
+      font: 10px var(--mono);
+      letter-spacing: .16em
+    }
+
+    .metric-large {
+      margin: 14px 0 18px;
+      font: 42px var(--mono);
+      letter-spacing: -.06em;
+      color: #f4f8fb;
+      text-shadow: 0 0 20px rgba(155, 196, 223, .12)
+    }
+
+    .metric-large span {
+      color: var(--muted);
+      font-size: 12px
+    }
+
+    .mini-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 15px
+    }
+
+    .mini-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding: 12px 12px;
+      border: 1px solid rgba(169, 192, 210, .12);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(12, 18, 25, .92), rgba(10, 14, 20, .94));
+      box-shadow: inset 0 1px rgba(255, 255, 255, .04), inset 0 0 0 1px rgba(120, 162, 188, .05), 0 10px 18px rgba(0, 0, 0, .16);
+      font-size: 12px;
+      backdrop-filter: blur(14px)
+    }
+
+    .mini-item span {
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: .09em;
+      text-transform: uppercase
+    }
+
+    .mini-item strong {
+      font: 12px var(--mono);
+      font-weight: 400
+    }
+
+    .healthy {
+      color: var(--green) !important
+    }
+
+    .caution {
+      color: var(--amber) !important
+    }
+
+    .hazard {
+      color: var(--red) !important
+    }
+
+    .quick-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px
+    }
+
+    .quick-chip {
+      padding: 6px 9px;
+      border: 1px solid rgba(143, 175, 201, .24);
+      border-radius: 999px;
+      background: rgba(143, 175, 201, .08);
+      color: var(--text);
+      font: 9px var(--mono);
+      letter-spacing: .12em;
+      text-transform: uppercase
+    }
+
+    .control-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px
+    }
+
+    .quiet-btn {
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .035);
+      color: var(--muted);
+      font: 10px var(--mono);
+      cursor: pointer
+    }
+
+    .quiet-btn:hover {
+      color: var(--text);
+      border-color: rgba(255, 255, 255, .26)
+    }
+
+    .network-dock {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      padding: 0 31px;
+      border-top: 1px solid var(--line);
+      background: rgba(5, 9, 14, .42)
+    }
+
+    .dock-title {
+      font: 10px var(--mono);
+      letter-spacing: .14em;
+      color: var(--muted)
+    }
+
+    .dock-events {
+      display: flex;
+      gap: 28px;
+      overflow: hidden;
+      white-space: nowrap;
+      color: var(--muted);
+      font: 10px var(--mono)
+    }
+
+    .dock-events b {
+      color: var(--text);
+      font-weight: 400
+    }
+
+    .dock-events i {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-right: 7px;
+      border-radius: 50%;
+      background: var(--green)
+    }
+
+    .radar-view {
+      position: relative
+    }
+
+    .radar-head {
+      position: absolute;
+      z-index: 10;
+      top: 31px;
+      left: 42px
+    }
+
+    .radar-head h2 {
+      margin: 8px 0;
+      font-size: 27px;
+      font-weight: 400
+    }
+
+    .radar-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px
+    }
+
+    .radar-meta {
+      position: absolute;
+      z-index: 10;
+      top: 35px;
+      right: 38px;
+      display: flex;
+      gap: 25px
+    }
+
+    .radar-meta div {
+      text-align: right
+    }
+
+    .radar-meta small {
+      display: block;
+      color: var(--muted);
+      font: 9px var(--mono)
+    }
+
+    .radar-meta strong {
+      display: block;
+      margin-top: 5px;
+      font: 15px var(--mono)
+    }
+
+    .back-btn {
+      position: absolute;
+      z-index: 15;
+      right: 34px;
+      bottom: 29px;
+      padding: 10px 15px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(255, 255, 255, .04);
+      color: var(--muted);
+      font: 10px var(--mono);
+      cursor: pointer
+    }
+
+    .back-btn:hover {
+      color: var(--text);
+      border-color: var(--active)
+    }
+
+    .focus-panel {
+      position: absolute;
+      z-index: 30;
+      width: 270px;
+      padding: 18px;
+      opacity: 0;
+      pointer-events: none;
+      border: 1px solid rgba(143, 175, 201, .38);
+      border-radius: 16px;
+      background: rgba(20, 28, 38, .94);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, .45);
+      transform: translate(22px, -50%) scale(.8);
+      transform-origin: left center;
+      transition: opacity .3s, transform .65s cubic-bezier(.2, .8, .2, 1), left .65s, top .65s
+    }
+
+    .focus-panel.is-open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(22px, -50%) scale(1)
+    }
+
+    .focus-panel:before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: -44px;
+      width: 44px;
+      border-top: 1px solid var(--active)
+    }
+
+    .focus-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      border: 0;
+      background: none;
+      color: var(--muted);
+      cursor: pointer
+    }
+
+    .focus-close:hover {
+      color: var(--text)
+    }
+
+    .focus-kicker {
+      color: var(--active);
+      font: 9px var(--mono);
+      letter-spacing: .15em
+    }
+
+    .focus-panel h3 {
+      margin: 7px 0 3px;
+      font-size: 19px;
+      font-weight: 500
+    }
+
+    .focus-panel p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px
+    }
+
+    .focus-data {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 19px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line)
+    }
+
+    .focus-data small {
+      display: block;
+      color: var(--muted);
+      font: 9px var(--mono)
+    }
+
+    .focus-data strong {
+      display: block;
+      margin-top: 5px;
+      color: var(--text);
+      font: 12px var(--mono);
+      font-weight: 400
+    }
+
+    .focus-actions {
+      display: flex;
+      gap: 7px;
+      margin-top: 17px
+    }
+
+    .focus-actions button {
+      flex: 1;
+      padding: 9px 4px;
+      border: 1px solid rgba(143, 175, 201, .28);
+      border-radius: 8px;
+      background: rgba(143, 175, 201, .1);
+      color: var(--active);
+      font: 9px var(--mono);
+      cursor: pointer
+    }
+
+    .focus-actions button:hover {
+      background: rgba(143, 175, 201, .2)
+    }
+
+    .network-view,
+    .message-view {
+      padding: 44px 50px
+    }
+
+    .network-view h2,
+    .message-view h2 {
+      margin: 8px 0;
+      font-size: 32px;
+      font-weight: 400
+    }
+
+    .network-view>p,
+    .message-view>p {
+      color: var(--muted);
+      font-size: 13px
+    }
+
+    .network-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      max-width: 760px;
+      margin-top: 38px
+    }
+
+    .network-card {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface)
+    }
+
+    .network-card small {
+      color: var(--muted);
+      font: 9px var(--mono);
+      letter-spacing: .13em
+    }
+
+    .network-card strong {
+      display: block;
+      margin-top: 12px;
+      font: 22px var(--mono)
+    }
+
+    .network-card p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px
+    }
+
+    .message-line {
+      display: flex;
+      justify-content: space-between;
+      max-width: 700px;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px
+    }
+
+    .message-line span {
+      color: var(--muted);
+      font: 10px var(--mono)
+    }
+
+    @media(max-width:900px) {
+      body {
+        overflow: auto
+      }
+
+      .app {
+        padding: 10px
+      }
+
+      .shell {
+        min-height: 760px;
+        grid-template-columns: 1fr;
+        grid-template-rows: 64px 1fr;
+        border-radius: 22px
+      }
+
+      .rail {
+        grid-row: 1;
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 0 18px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line)
+      }
+
+      .rail-nav {
+        display: flex;
+        margin: 0;
+        gap: 3px
+      }
+
+      .nav-btn {
+        width: 39px;
+        height: 39px
+      }
+
+      .rail-bottom {
+        margin: 0
+      }
+
+      .topbar {
+        position: absolute;
+        z-index: 25;
+        top: 64px;
+        height: 68px;
+        left: 0;
+        right: 0;
+        padding: 0 20px;
+        background: rgba(8, 13, 19, .74);
+        border-bottom: 1px solid var(--line)
+      }
+
+      .top-actions {
+        gap: 13px
+      }
+
+      .top-value:first-child {
+        display: none
+      }
+
+      .views {
+        inset: 132px 0 0
+      }
+
+      .overview {
+        display: flex;
+        flex-direction: column;
+        overflow: auto
+      }
+
+      .hero {
+        height: 520px;
+        min-height: 520px
+      }
+
+      .side-panel {
+        min-height: 310px;
+        border-left: 0;
+        border-top: 1px solid var(--line)
+      }
+
+      .network-dock {
+        min-height: 84px;
+        padding: 0 20px
+      }
+
+      .dock-events {
+        display: none
+      }
+
+      .radar-head {
+        left: 22px
+      }
+
+      .radar-meta {
+        right: 22px;
+        gap: 12px
+      }
+
+      .network-grid {
+        grid-template-columns: 1fr
+      }
+
+      .network-view,
+      .message-view {
+        padding: 30px 24px
+      }
+    }
+
+    @media(max-width:560px) {
+      .brand-sub {
+        display: none
+      }
+
+      .brand-name {
+        font-size: 13px
+      }
+
+      .status span {
+        display: none
+      }
+
+      .top-value:nth-child(2) {
+        display: none
+      }
+
+      .topbar {
+        padding: 0 17px
+      }
+
+      .hero-copy {
+        left: 22px;
+        top: 28px
+      }
+
+      .hero-copy h1 {
+        font-size: 28px
+      }
+
+      .hero-copy p {
+        max-width: 260px
+      }
+
+      .side-panel {
+        padding: 25px 22px
+      }
+
+      .focus-panel {
+        width: calc(100% - 32px);
+        left: 50% !important;
+        top: 45% !important;
+        transform: translate(-50%, -50%) scale(.8)
+      }
+
+      .focus-panel.is-open {
+        transform: translate(-50%, -50%) scale(1)
+      }
+
+      .focus-panel:before {
+        display: none
+      }
+
+      .radar-meta {
+        top: 94px
+      }
+
+      .radar-head {
+        top: 27px
+      }
+
+      .radar-head h2 {
+        font-size: 24px
+      }
+
+      .radar-view .scene-canvas {
+        top: 42px;
+        height: calc(100% - 42px)
+      }
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+
+      *,
+      *:before,
+      *:after {
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important
+      }
+    }
+
+    .radar-view {
+      position: absolute
+    }
+
+    .radar-view .focus-panel {
+      display: block;
+      position: absolute
+    }
+
+    .radar-view .focus-panel.is-open {
+      opacity: 1
+    }
+
+    .radar-focus {
+      display: none !important
+    }
+
+    .rail-nav {
+      display: grid !important
+    }
+
+    .car-model {
+      z-index: 9 !important;
+      background: rgba(8, 12, 18, .99) !important;
+      border-radius: 48%;
+    }
+
+    .car-model {
+      position: absolute;
+      z-index: 7;
+      left: 50%;
+      bottom: 4%;
+      width: 94px;
+      height: 154px;
+      transform: translateX(-50%);
+      pointer-events: none;
+      filter: drop-shadow(0 12px 16px rgba(0, 0, 0, .5)) drop-shadow(0 0 10px rgba(142, 169, 192, .2))
+    }
+
+    .menu-trigger {
+      width: 42px;
+      height: 42px;
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .035);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1
+    }
+
+    .menu-trigger:hover {
+      border-color: var(--active);
+      background: rgba(143, 175, 201, .14)
+    }
+
+    .menu-trigger span,
+    .menu-trigger span:before,
+    .menu-trigger span:after {
+      display: block;
+      width: 16px;
+      height: 1px;
+      margin: auto;
+      background: currentColor;
+      content: "";
+      transition: .25s
+    }
+
+    .menu-trigger span:before {
+      transform: translateY(-5px)
+    }
+
+    .menu-trigger span:after {
+      transform: translateY(4px)
+    }
+
+    .rail.is-open .menu-trigger span {
+      background: transparent
+    }
+
+    .rail.is-open .menu-trigger span:before {
+      transform: translateY(0) rotate(45deg)
+    }
+
+    .rail.is-open .menu-trigger span:after {
+      transform: translateY(-1px) rotate(-45deg)
+    }
+
+    .menu-drawer {
+      position: absolute;
+      z-index: 50;
+      top: 25px;
+      left: 68px;
+      width: 248px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(18, 26, 37, .96);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, .42);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(-10px);
+      transition: .25s
+    }
+
+    .rail.is-open .menu-drawer {
+      opacity: 1;
+      visibility: visible;
+      transform: none
+    }
+
+    .menu-heading {
+      color: var(--muted);
+      font: 9px var(--mono);
+      letter-spacing: .16em;
+      margin-bottom: 12px
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 12px 10px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      text-align: left;
+      cursor: pointer
+    }
+
+    .menu-item:hover,
+    .menu-item.is-active {
+      background: rgba(143, 175, 201, .12);
+      color: var(--text)
+    }
+
+    .menu-item b {
+      font-size: 13px;
+      font-weight: 500
+    }
+
+    .menu-item small {
+      display: block;
+      margin-top: 3px;
+      color: #697887;
+      font: 9px var(--mono)
+    }
+
+    .menu-mark {
+      width: 28px;
+      color: var(--active);
+      font: 12px var(--mono);
+      text-align: center
+    }
+
+    .car-model {
+      position: absolute;
+      z-index: 7;
+      left: 50%;
+      bottom: 4%;
+      width: 94px;
+      height: 154px;
+      transform: translateX(-50%);
+      pointer-events: none;
+      filter: drop-shadow(0 12px 16px rgba(0, 0, 0, .5)) drop-shadow(0 0 10px rgba(142, 169, 192, .2))
+    }
+
+    .car-model .car-body {
+      fill: url(#carPaint);
+      stroke: #d6e2e5;
+      stroke-width: 1.2
+    }
+
+    .car-model .car-glass {
+      fill: #263b4a;
+      stroke: #90aebe;
+      stroke-width: 1
+    }
+
+    .car-model .car-light {
+      fill: #dbe9e7
+    }
+
+    .car-model .car-wheel {
+      fill: #111820;
+      stroke: #72838e;
+      stroke-width: 1
+    }
+
+    .car-model .car-detail {
+      fill: none;
+      stroke: rgba(226, 239, 241, .62);
+      stroke-width: 1
+    }
+
+    .car-model .car-label {
+      fill: #9bb1bd;
+      font: 9px var(--mono);
+      letter-spacing: 1px
+    }
+
+    @media(max-width:900px) {
+      .menu-drawer {
+        top: 58px;
+        left: 18px
+      }
+
+      .menu-trigger {
+        margin: 0
+      }
+
+      .car-model {
+        bottom: 31%
+      }
+    }
+
+    @media(max-width:560px) {
+      .car-model {
+        bottom: 32%;
+        width: 76px;
+        height: 125px
+      }
+
+      .menu-drawer {
+        width: 225px
+      }
+    }
+  </style>
+  <style>
+    .rail {
+      position: relative;
+    }
+
+    .car-model {
+      z-index: 9 !important;
+      bottom: -3% !important;
+    }
+
+    @media (max-width: 900px) {
+      .topbar {
+        top: 0 !important;
+      }
+
+      .views {
+        inset: 68px 0 0 !important;
+      }
+
+      .rail-nav {
+        display: flex !important;
+      }
+
+      .car-model {
+        bottom: -3% !important;
+      }
+    }
+  </style>
+  <style>
+    .radar-view .radar-head,
+    .radar-view .radar-meta,
+    .radar-view .back-btn {
+      z-index: 20;
+    }
+
+    .radar-disc {
+      position: absolute;
+      z-index: 8;
+      top: 52%;
+      left: 50%;
+      width: min(62vw, 620px);
+      height: min(62vw, 620px);
+      transform: translate(-50%, -50%);
+      border: 1px solid rgba(156, 189, 214, .24);
+      border-radius: 50%;
+      background: radial-gradient(circle at center, rgba(34, 50, 62, .48), rgba(11, 17, 24, .82) 54%, rgba(5, 9, 15, .96));
+      box-shadow: inset 0 0 90px rgba(130, 174, 213, .08), inset 0 0 30px rgba(130, 174, 213, .06), 0 18px 50px rgba(0, 0, 0, .24), 0 0 24px rgba(122, 166, 204, .12);
+      overflow: hidden;
+      transition: transform .7s cubic-bezier(.2, .8, .2, 1), filter .45s;
+    }
+
+    .radar-view:has(.focus-panel.is-open) .radar-disc {
+      transform: translate(-50%, -50%) scale(1.06);
+      filter: brightness(1.15);
+    }
+
+    .radar-disc.is-focused {
+      filter: brightness(1.15);
+    }
+
+    .radar-disc canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    .radar-disc::before {
+      content: '';
+      position: absolute;
+      inset: 10% 10%;
+      border: 1px solid rgba(142, 169, 192, .12);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .radar-disc::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, .04), transparent 32%, transparent 68%, rgba(255, 255, 255, .03));
+      pointer-events: none;
+    }
+
+    @media(max-width:900px) {
+      .radar-disc {
+        width: min(72vw, 520px);
+        height: min(72vw, 520px);
+        top: 50%;
+      }
+    }
+
+    @media(max-width:560px) {
+      .radar-disc {
+        width: min(86vw, 420px);
+        height: min(86vw, 420px);
+        top: 52%;
+      }
+    }
+  </style>
+  <style>
+    .hero-center-display {
+      position: absolute;
+      z-index: 9;
+      left: 50%;
+      top: 34%;
+      width: min(330px, 43%);
+      transform: translate(-50%, -50%);
+      padding: 13px 16px 11px;
+      border: 1px solid rgba(180, 207, 225, .2);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(18, 27, 37, .5), rgba(8, 13, 19, .65));
+      backdrop-filter: blur(14px);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, .16), inset 0 1px rgba(255, 255, 255, .06)
+    }
+
+    .hero-center-display:before {
+      content: "";
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      top: 9px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(190, 220, 237, .65), transparent)
+    }
+
+    .center-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #b6c9d7;
+      font: 9px var(--mono);
+      letter-spacing: .18em;
+      text-transform: uppercase
+    }
+
+    .center-label:before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(138, 185, 157, .7)
+    }
+
+    .center-readout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 13px
+    }
+
+    .center-stat {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 8px
+    }
+
+    .center-readout strong {
+      font: 29px var(--mono);
+      letter-spacing: -.08em;
+      color: #f2f7fa
+    }
+
+    .center-readout span {
+      padding-bottom: 4px;
+      color: var(--muted);
+      font: 8px var(--mono);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      text-align: right
+    }
+
+    .center-bars {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+      margin-top: 13px
+    }
+
+    .center-bars i {
+      display: block;
+      height: 3px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #80b9ce, #deeff5);
+      box-shadow: 0 0 10px rgba(128, 185, 206, .22)
+    }
+
+    .side-panel {
+      background: linear-gradient(180deg, rgba(9, 15, 22, .68), rgba(7, 11, 17, .9))
+    }
+
+    .mini-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 9px;
+      margin-top: 13px
+    }
+
+    .mini-item {
+      position: relative;
+      display: block;
+      padding: 11px 12px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(169, 192, 210, .13);
+      background: linear-gradient(180deg, rgba(15, 23, 31, .92), rgba(9, 14, 20, .96));
+      box-shadow: inset 0 1px rgba(255, 255, 255, .045), 0 9px 18px rgba(0, 0, 0, .13);
+      overflow: hidden
+    }
+
+    .mini-item:before {
+      content: "";
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gauge-accent, #8ab99d), transparent)
+    }
+
+    .mini-item:after {
+      content: "";
+      display: block;
+      height: 4px;
+      margin-top: 9px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--gauge-accent, #8ab99d) var(--gauge-level, 72%), rgba(137, 160, 182, .12) var(--gauge-level, 72%));
+      box-shadow: 0 0 12px var(--gauge-accent, #8ab99d)
+    }
+
+    .mini-item span {
+      display: inline-block;
+      color: var(--muted);
+      font: 9px var(--mono);
+      letter-spacing: .12em;
+      text-transform: uppercase
+    }
+
+    .mini-item strong {
+      float: right;
+      font: 11px var(--mono);
+      font-weight: 500;
+      color: #edf3f8
+    }
+
+    .mini-item:nth-child(2),
+    .mini-item:nth-child(3),
+    .mini-item:nth-child(6),
+    .mini-item:nth-child(7) {
+      --gauge-accent: var(--green);
+      --gauge-level: 86%
+    }
+
+    .mini-item:nth-child(5) {
+      --gauge-accent: var(--amber);
+      --gauge-level: 58%
+    }
+
+    @media(max-width:900px) {
+      .hero-center-display {
+        width: min(330px, 56%);
+        top: 35%
+      }
+
+      .mini-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr))
+      }
+    }
+
+    @media(max-width:560px) {
+      .hero-center-display {
+        width: calc(100% - 44px);
+        top: 32%
+      }
+
+      .mini-list {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .side-panel .hero-center-display {
+      position: relative;
+      left: auto;
+      top: auto;
+      width: auto;
+      transform: none;
+      margin: 20px 0 0;
+      padding: 13px 14px 11px;
+      border-radius: 13px;
+      background: rgba(18, 27, 37, .5);
+      box-shadow: inset 0 1px rgba(255, 255, 255, .05)
+    }
+
+    .side-panel .center-readout {
+      gap: 10px
+    }
+
+    .side-panel .center-readout strong {
+      font-size: 23px
+    }
+
+    .side-panel .center-readout span {
+      font-size: 7px
+    }
+
+    .side-panel .center-bars {
+      margin-top: 11px
+    }
+  </style>
 </head>
-<body><main class="app"><div class="shell">
-<aside class="rail"><div class="mark">V</div><nav class="rail-nav" aria-label="VehicleNet navigation"><button class="nav-btn is-active" data-view="overview" aria-label="Overview"><span class="nav-icon">HOME</span></button><button class="nav-btn" data-view="radar" aria-label="Radar"><span class="nav-icon">RADAR</span></button><button class="nav-btn" data-view="network" aria-label="Vehicle Network"><span class="nav-icon">LINK</span></button><button class="nav-btn" data-view="messages" aria-label="Messages"><span class="nav-icon">MSG</span></button></nav><div class="rail-bottom">MORE</div></aside>
-<section class="workspace"><header class="topbar"><div><div class="eyebrow">VEHICLE COMMUNICATION SYSTEM</div><div class="title">VEHICLE<span>NET</span></div></div><div class="top-actions"><div class="top-value"><small>MODE</small><strong>AUTO</strong></div><div class="top-value"><small>RANGE</small><strong>300 M</strong></div><div class="status"><i></i><span>LIVE LINK</span></div></div></header>
-<div class="views">
-<section class="view overview is-active" data-page="overview"><div class="hero"><canvas id="overview-canvas" class="scene-canvas" aria-label="Vehicle overview spatial field"></canvas><div class="hero-copy"><div class="eyebrow">OVERVIEW / AWARENESS FIELD</div><h1>Move with awareness.</h1><div class="quick-strip"><span class="quick-chip">NAV</span><span class="quick-chip">SAFE</span><span class="quick-chip">RADAR</span><span class="quick-chip">LINKS</span></div></div><div class="hero-foot">FIELD STATUS <b>STABLE</b> &nbsp; / &nbsp; THREE NODES IN RANGE</div><section class="focus-panel" id="focus-panel" aria-hidden="true"><button class="focus-close" id="focus-close" aria-label="Close vehicle detail">×</button><div class="focus-kicker">SELECTED VEHICLE / LINKED</div><h3 id="focus-id">VN-1182</h3><p id="focus-label">Northbound commuter</p><div class="focus-data"><div><small>DISTANCE</small><strong id="focus-distance">84 M</strong></div><div><small>HEADING</small><strong id="focus-heading">018 DEG</strong></div><div><small>SPEED</small><strong id="focus-speed">62 KM/H</strong></div><div><small>CONNECTION</small><strong id="focus-connection">LINKED</strong></div></div><div class="focus-actions"><button id="focus-target">SET TARGET</button><button id="focus-message">PING VEHICLE</button></div></section></div><aside class="side-panel"><div class="section-kicker">YOUR VEHICLE</div><div class="metric-large">68 <span>KM/H</span></div><div class="mini-list"><div class="mini-item"><span>Heading</span><strong>042° NE</strong></div><div class="mini-item"><span>Vehicle state</span><strong class="healthy">MOVING / HEALTHY</strong></div><div class="mini-item"><span>Position lock</span><strong class="healthy">ACQUIRED</strong></div><div class="mini-item"><span>Nearby vehicles</span><strong>03 ACTIVE</strong></div><div class="mini-item"><span>Road context</span><strong>LANE 2 / CLEAR</strong></div><div class="mini-item"><span>Signal integrity</span><strong>98.4% LINKED</strong></div><div class="mini-item"><span>Nearest peer</span><strong>VN-1182 / 84 M</strong></div></div><div class="control-row"><button class="quiet-btn" data-view-jump="radar">Open radar</button><button class="quiet-btn" data-demo="Signal sent">Broadcast</button></div></aside><div class="network-dock"><div class="dock-title">LIVE MESH</div><div class="dock-events"><div><i></i><b>VN-1182</b> telemetry synchronized</div><div><i></i><b>VN-0764</b> approaching field</div><div><i></i><b>FIELD</b> stable / 24 ms</div></div></div></section>
-<section class="view radar-view" data-page="radar"><div class="radar-head"><div class="eyebrow">SPATIAL RADAR / 360 degrees</div><h2>Awareness field</h2><p>Click any vehicle to focus its live link.</p></div><div class="radar-meta"><div><small>HEADING</small><strong>042 degrees NE</strong></div><div><small>RANGE</small><strong>300 M</strong></div><div><small>VEHICLES</small><strong>03</strong></div></div><canvas id="radar-canvas" class="scene-canvas" aria-label="Interactive spatial radar"></canvas><section class="focus-panel radar-focus" id="radar-focus-panel" aria-hidden="true"><button class="focus-close" id="radar-focus-close" aria-label="Close radar vehicle detail">x</button><div class="focus-kicker">SELECTED VEHICLE / LINKED</div><h3 id="radar-focus-id">VN-1182</h3><p id="radar-focus-label">Northbound commuter</p><div class="focus-data"><div><small>DISTANCE</small><strong id="radar-focus-distance">84 M</strong></div><div><small>HEADING</small><strong id="radar-focus-heading">018 DEG</strong></div><div><small>SPEED</small><strong id="radar-focus-speed">62 KM/H</strong></div><div><small>CONNECTION</small><strong id="radar-focus-connection">LINKED</strong></div></div></section><button class="back-btn" data-view-jump="overview">BACK TO OVERVIEW</button></section>
-<section class="view network-view" data-page="network"><div class="eyebrow">VEHICLE NETWORK</div><h2>Connected awareness.</h2><p>Every signal is a relationship between vehicles, distance, and intent.</p><div class="network-grid"><div class="network-card"><small>ACTIVE NODES</small><strong>03</strong><p>All vehicles are inside the current 300 meter field.</p></div><div class="network-card"><small>LINK QUALITY</small><strong class="healthy">98.4%</strong><p>Stable peer synchronization across the awareness field.</p></div><div class="network-card"><small>SAFETY SIGNALS</small><strong>02</strong><p>One caution signal and one normal driving intent.</p></div><div class="network-card"><small>LATENCY</small><strong>24 MS</strong><p>Fast enough for immediate driver feedback.</p></div></div></section>
-<section class="view message-view" data-page="messages"><div class="eyebrow">V2V MESSAGES</div><h2>Quiet communication.</h2><p>Short, meaningful signals designed for the road.</p><div class="message-line"><strong>Telemetry synchronized</strong><span>VN-1182 / 2 SEC AGO</span></div><div class="message-line"><strong>Approaching vehicle detected</strong><span>VN-0764 / 7 SEC AGO</span></div><div class="message-line"><strong>Field stable</strong><span>SYSTEM / NOW</span></div></section>
-</div></section></div></main>
-<script>
-(()=>{const vehicles=[{id:'VN-1182',label:'Northbound commuter',distance:84,heading:18,speed:62,x:-.34,depth:.34,status:'LINKED',color:'#8ab99d'},{id:'VN-0764',label:'Approaching vehicle',distance:146,heading:201,speed:54,x:.28,depth:.56,status:'LINKED',color:'#8ea9c0'},{id:'VN-3309',label:'Rear awareness node',distance:228,heading:356,speed:71,x:.08,depth:.78,status:'CAUTION',color:'#c6a46a'}];let selected=null,pulse=0;const canvases=[document.getElementById('overview-canvas'),document.getElementById('radar-canvas')];function setupCanvas(canvas){const scene=canvas.parentElement,ctx=canvas.getContext('2d');let w=0,h=0;function resize(){const r=scene.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);w=r.width;h=r.height;canvas.width=w*d;canvas.height=h*d;canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(d,0,0,d,0,0)}function project(v){const horizon=h*.3,bottom=h*.88,y=horizon+v.depth*(bottom-horizon),road=55+v.depth*w*.7;return{x:w/2+v.x*road,y,size:4+v.depth*9}}function draw(){ctx.clearRect(0,0,w,h);const horizon=h*.3,bottom=h*.92,c=w/2,top=Math.max(20,w*.03),wide=w*.46;ctx.save();ctx.strokeStyle='rgba(142,169,192,.22)';ctx.beginPath();ctx.moveTo(c-top,horizon);ctx.lineTo(c-wide,bottom);ctx.moveTo(c+top,horizon);ctx.lineTo(c+wide,bottom);ctx.stroke();ctx.setLineDash([4,14]);ctx.strokeStyle='rgba(232,242,244,.24)';ctx.beginPath();ctx.moveTo(c-top*.38,horizon);ctx.lineTo(c-wide*.38,bottom);ctx.moveTo(c+top*.38,horizon);ctx.lineTo(c+wide*.38,bottom);ctx.stroke();ctx.setLineDash([]);[.2,.42,.66,.84].forEach(d=>{const y=horizon+d*(bottom-horizon),half=top+d*(wide-top);ctx.strokeStyle='rgba(142,169,192,.14)';ctx.beginPath();ctx.moveTo(c-half,y);ctx.lineTo(c+half,y);ctx.stroke()});[.27,.5,.73].forEach((d,i)=>{const y=horizon+d*(bottom-horizon),half=40+d*w*.3;ctx.strokeStyle='rgba(142,169,192,'+(0.18-i*.03)+')';ctx.beginPath();ctx.ellipse(c,y,half,7+d*14,0,Math.PI,Math.PI*2);ctx.stroke();ctx.fillStyle='#81909e';ctx.font='9px Consolas';ctx.fillText((i+1)*100+' M',c+half+7,y+3)});ctx.restore();vehicles.slice().sort((a,b)=>b.depth-a.depth).forEach(v=>{const p=project(v),focus=selected&&selected.id===v.id;ctx.save();if(focus){ctx.strokeStyle='rgba(142,175,208,.8)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,p.size+9+Math.sin(pulse)*2,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(p.x,p.y-p.size-9);ctx.lineTo(p.x,p.y-p.size-31);ctx.stroke()}ctx.fillStyle=v.color;ctx.shadowColor=v.color;ctx.shadowBlur=focus?16:7;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#edf2f4';ctx.font=(focus?'bold ':'')+Math.max(9,10+v.depth*2)+'px Consolas';ctx.fillText(v.id,p.x+p.size+8,p.y-5);ctx.fillStyle='#81909e';ctx.font='9px Consolas';ctx.fillText(v.distance+' M',p.x+p.size+8,p.y+9);ctx.restore()});ctx.save();const y=h*.86;ctx.fillStyle='#dfeaec';ctx.shadowColor='#8ea9c0';ctx.shadowBlur=17;ctx.beginPath();ctx.moveTo(c,y-48);ctx.lineTo(c+24,y+30);ctx.lineTo(c+15,y+50);ctx.lineTo(c-15,y+50);ctx.lineTo(c-24,y+30);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#344857';ctx.beginPath();ctx.moveTo(c-10,y-27);ctx.lineTo(c+10,y-27);ctx.lineTo(c+15,y+15);ctx.lineTo(c-15,y+15);ctx.closePath();ctx.fill();ctx.restore();if(!matchMedia('(prefers-reduced-motion: reduce)').matches)pulse+=.05;requestAnimationFrame(draw)}function hit(e){const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;return vehicles.find(v=>{const p=project(v);return Math.hypot(p.x-x,p.y-y)<Math.max(18,p.size+12)})}canvas.addEventListener('click',e=>{const v=hit(e);if(v)focus(v)});resize();draw();window.addEventListener('resize',resize)}function focus(v){selected=v;document.querySelectorAll('.scene-canvas').forEach(c=>c.closest('.hero,.radar-view').classList.add('is-focused'));const p=document.getElementById('focus-panel'),hero=document.querySelector('.hero'),r=hero.getBoundingClientRect(),x=Math.max(20,Math.min(70,((r.width/2+v.x*r.width*.35)/r.width)*100)),y=Math.max(25,Math.min(70,(.3+v.depth*.55)*100));p.style.left=x+'%';p.style.top=y+'%';p.classList.add('is-open');p.setAttribute('aria-hidden','false');for(const[id,val]of Object.entries({'focus-id':v.id,'focus-label':v.label,'focus-distance':v.distance+' M','focus-heading':String(v.heading).padStart(3,'0')+' DEG','focus-speed':v.speed+' KM/H','focus-connection':v.status}))document.getElementById(id).textContent=val}function close(){selected=null;document.querySelectorAll('.scene-canvas').forEach(c=>c.closest('.hero,.radar-view').classList.remove('is-focused'));document.getElementById('focus-panel').classList.remove('is-open');document.getElementById('focus-panel').setAttribute('aria-hidden','true')}function setView(name){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('is-active',v.dataset.page===name));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('is-active',b.dataset.view===name))}document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));document.querySelectorAll('[data-view-jump]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.viewJump)));document.getElementById('focus-close').addEventListener('click',close);document.getElementById('focus-target').addEventListener('click',e=>e.target.textContent='TARGET LOCKED');document.getElementById('focus-message').addEventListener('click',e=>e.target.textContent='PING SENT');document.querySelectorAll('[data-demo]').forEach(b=>b.addEventListener('click',()=>{const old=b.textContent;b.textContent=b.dataset.demo;setTimeout(()=>b.textContent=old,1100)}));canvases.forEach(setupCanvas)})();
-</script>
-<script>
-document.querySelectorAll('.nav-btn,[data-view-jump]').forEach(function(button){button.addEventListener('click',function(){window.dispatchEvent(new Event('resize'));});});
-const sharedFocusPanel=document.getElementById('focus-panel');
-const originalCanvasFill=CanvasRenderingContext2D.prototype.fill;
-CanvasRenderingContext2D.prototype.fill=function(){if(this.fillStyle==='#dfeaec'||this.fillStyle==='#344857')return;return originalCanvasFill.apply(this,arguments);};
-function addCarModel(host){const car=document.createElementNS('http://www.w3.org/2000/svg','svg');car.classList.add('car-model');car.setAttribute('viewBox','0 0 94 154');car.setAttribute('aria-label','Your vehicle');car.setAttribute('role','img');car.innerHTML='<defs><linearGradient id="carPaintLive" x1="0" x2="1"><stop offset="0" stop-color="#334b5b"/><stop offset=".5" stop-color="#dbe8e9"/><stop offset="1" stop-color="#405a6b"/></linearGradient></defs><g class="car-wheels"><rect class="car-wheel" x="7" y="32" width="12" height="31" rx="5"/><rect class="car-wheel" x="75" y="32" width="12" height="31" rx="5"/><rect class="car-wheel" x="7" y="91" width="12" height="31" rx="5"/><rect class="car-wheel" x="75" y="91" width="12" height="31" rx="5"/></g><path class="car-body" d="M47 5C34 5 25 17 22 34L17 111C16 130 28 145 47 149C66 145 78 130 77 111L72 34C69 17 60 5 47 5Z" fill="url(#carPaintLive)"/><path class="car-glass" d="M29 37C32 21 38 14 47 13C56 14 62 21 65 37L61 57H33Z"/><path class="car-glass" d="M32 67H62L67 108C61 116 55 120 47 121C39 120 33 116 27 108Z" opacity=".72"/><path class="car-detail" d="M24 61H70M25 126H69"/><path class="car-light" d="M25 20L34 15L31 29L24 32Z"/><path class="car-light" d="M69 20L60 15L63 29L70 32Z"/><text class="car-label" x="47" y="143" text-anchor="middle">YOU</text>';host.appendChild(car);}
-document.querySelectorAll('.hero,.radar-view').forEach(addCarModel);
-const linkQuality=document.createElement('div');
-linkQuality.className='top-value';
-linkQuality.innerHTML='<small>LINK QUALITY</small><strong>98.4%</strong>';
-const liveStatus=document.querySelector('.top-actions .status');
-if(liveStatus) liveStatus.before(linkQuality);
-else document.querySelector('.top-actions')?.appendChild(linkQuality);
-document.querySelectorAll('.focus-close').forEach(function(button){button.textContent='x';});
-const overviewHero=document.querySelector('.hero');
-const radarView=document.querySelector('.radar-view');
-document.querySelectorAll('[data-view]').forEach(function(button){button.addEventListener('click',function(){if(button.dataset.view==='radar')radarView.appendChild(sharedFocusPanel);if(button.dataset.view==='overview')overviewHero.appendChild(sharedFocusPanel);});});
-</script>
-<script>
-(() => {
-  const defaultPeers = [
-    {id:'VN-1182',label:'Northbound commuter',distance:84,bearing:-34,heading:18,speed:62,status:'LINKED',color:'#8ab99d'},
-    {id:'VN-0764',label:'Approaching vehicle',distance:146,bearing:58,heading:201,speed:54,status:'LINKED',color:'#8ea9c0'},
-    {id:'VN-3309',label:'Rear awareness node',distance:228,bearing:8,heading:356,speed:71,status:'CAUTION',color:'#c6a46a'}
-  ];
 
-  const APP_STATE = {
-    selfId: 'VN-2047',
-    peers: [...defaultPeers],
-    selectedTargetId: null,
-    targetMode: 'broadcast',
-    commRangeMeters: 300,
-    speed: 68,
-    heading: 42,
-    isCooldownActive: false,
-    activeAlert: null,
-    audioEnabled: true,
-    customServerHost: localStorage.getItem('vehiclenet_custom_host') || null
-  };
+<body>
+  <main class="app">
+    <div class="shell">
+      <aside class="rail">
+        <div class="mark">V</div>
+        <nav class="rail-nav" aria-label="VehicleNet navigation"><button class="nav-btn is-active" data-view="overview"
+            aria-label="Overview"><span class="nav-icon">HOME</span></button><button class="nav-btn" data-view="radar"
+            aria-label="Radar"><span class="nav-icon">RADAR</span></button><button class="nav-btn" data-view="network"
+            aria-label="Vehicle Network"><span class="nav-icon">LINK</span></button><button class="nav-btn"
+            data-view="messages" aria-label="Messages"><span class="nav-icon">MSG</span></button></nav>
+        <div class="rail-bottom">MORE</div>
+      </aside>
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <div class="eyebrow">VEHICLE COMMUNICATION SYSTEM</div>
+            <div class="title">VEHICLE<span>NET</span></div>
+          </div>
+          <div class="top-actions">
+            <div class="top-value"><small>MODE</small><strong>AUTO</strong></div>
+            <div class="top-value"><small>RANGE</small><strong>300 M</strong></div>
+            <div class="status"><i></i><span>LIVE LINK</span></div>
+          </div>
+        </header>
+        <div class="views">
+          <section class="view overview is-active" data-page="overview">
+            <div class="hero"><canvas id="overview-canvas" class="scene-canvas"
+                aria-label="Vehicle overview spatial field"></canvas>
+              <div class="hero-copy">
+                <div class="eyebrow">OVERVIEW / AWARENESS FIELD</div>
+                <h1>Move with awareness.</h1>
+                <div class="quick-strip"><span class="quick-chip">NAV</span><span class="quick-chip">SAFE</span><span
+                    class="quick-chip">RADAR</span><span class="quick-chip">LINKS</span></div>
+              </div>
+              <div class="hero-foot">FIELD STATUS <b>STABLE</b> &nbsp; / &nbsp; THREE NODES IN RANGE</div>
+              <section class="focus-panel" id="focus-panel" aria-hidden="true"><button class="focus-close"
+                  id="focus-close" aria-label="Close vehicle detail">×</button>
+                <div class="focus-kicker">SELECTED VEHICLE / LINKED</div>
+                <h3 id="focus-id">VN-1182</h3>
+                <p id="focus-label">Northbound commuter</p>
+                <div class="focus-data">
+                  <div><small>DISTANCE</small><strong id="focus-distance">84 M</strong></div>
+                  <div><small>HEADING</small><strong id="focus-heading">018 DEG</strong></div>
+                  <div><small>SPEED</small><strong id="focus-speed">62 KM/H</strong></div>
+                  <div><small>CONNECTION</small><strong id="focus-connection">LINKED</strong></div>
+                </div>
+                <div class="focus-actions"><button id="focus-target">SET TARGET</button><button id="focus-message">PING
+                    VEHICLE</button></div>
+              </section>
+            </div>
+            <aside class="side-panel">
+              <div class="section-kicker">YOUR VEHICLE</div>
+              <div class="metric-large">68 <span>KM/H</span></div>
+              <div class="mini-list">
+                <div class="mini-item"><span>Heading</span><strong>042° NE</strong></div>
+                <div class="mini-item"><span>Vehicle state</span><strong class="healthy">MOVING / HEALTHY</strong></div>
+                <div class="mini-item"><span>Position lock</span><strong class="healthy">ACQUIRED</strong></div>
+                <div class="mini-item"><span>Nearby vehicles</span><strong>03 ACTIVE</strong></div>
+                <div class="mini-item"><span>Road context</span><strong>LANE 2 / CLEAR</strong></div>
+                <div class="mini-item"><span>Signal integrity</span><strong>98.4% LINKED</strong></div>
+                <div class="mini-item"><span>Nearest peer</span><strong>VN-1182 / 84 M</strong></div>
+              </div>
+              <div class="control-row"><button class="quiet-btn" data-view-jump="radar">Open radar</button><button
+                  class="quiet-btn" data-demo="Signal sent">Broadcast</button></div>
+            </aside>
+            <div class="network-dock">
+              <div class="dock-title">LIVE MESH</div>
+              <div class="dock-events">
+                <div><i></i><b>VN-1182</b> telemetry synchronized</div>
+                <div><i></i><b>VN-0764</b> approaching field</div>
+                <div><i></i><b>FIELD</b> stable / 24 ms</div>
+              </div>
+            </div>
+          </section>
+          <section class="view radar-view" data-page="radar">
+            <div class="radar-head">
+              <div class="eyebrow">SPATIAL RADAR / 360 degrees</div>
+              <h2>Awareness field</h2>
+              <p>Click any vehicle to focus its live link.</p>
+            </div>
+            <div class="radar-meta">
+              <div><small>HEADING</small><strong>042 degrees NE</strong></div>
+              <div><small>RANGE</small><strong>300 M</strong></div>
+              <div><small>VEHICLES</small><strong>03</strong></div>
+            </div><canvas id="radar-canvas" class="scene-canvas" aria-label="Interactive spatial radar"></canvas>
+            <section class="focus-panel radar-focus" id="radar-focus-panel" aria-hidden="true"><button
+                class="focus-close" id="radar-focus-close" aria-label="Close radar vehicle detail">x</button>
+              <div class="focus-kicker">SELECTED VEHICLE / LINKED</div>
+              <h3 id="radar-focus-id">VN-1182</h3>
+              <p id="radar-focus-label">Northbound commuter</p>
+              <div class="focus-data">
+                <div><small>DISTANCE</small><strong id="radar-focus-distance">84 M</strong></div>
+                <div><small>HEADING</small><strong id="radar-focus-heading">018 DEG</strong></div>
+                <div><small>SPEED</small><strong id="radar-focus-speed">62 KM/H</strong></div>
+                <div><small>CONNECTION</small><strong id="radar-focus-connection">LINKED</strong></div>
+              </div>
+            </section><button class="back-btn" data-view-jump="overview">BACK TO OVERVIEW</button>
+          </section>
+          <section class="view network-view" data-page="network">
+            <div class="eyebrow">VEHICLE NETWORK</div>
+            <h2>Connected awareness.</h2>
+            <p>Every signal is a relationship between vehicles, distance, and intent.</p>
+            <div class="network-grid">
+              <div class="network-card"><small>ACTIVE NODES</small><strong>03</strong>
+                <p>All vehicles are inside the current 300 meter field.</p>
+              </div>
+              <div class="network-card"><small>LINK QUALITY</small><strong class="healthy">98.4%</strong>
+                <p>Stable peer synchronization across the awareness field.</p>
+              </div>
+              <div class="network-card"><small>SAFETY SIGNALS</small><strong>02</strong>
+                <p>One caution signal and one normal driving intent.</p>
+              </div>
+              <div class="network-card"><small>LATENCY</small><strong>24 MS</strong>
+                <p>Fast enough for immediate driver feedback.</p>
+              </div>
+            </div>
+          </section>
+          <section class="view message-view" data-page="messages">
+            <div class="eyebrow">V2V MESSAGES</div>
+            <h2>Quiet communication.</h2>
+            <p>Short, meaningful signals designed for the road.</p>
+            <div class="message-line"><strong>Telemetry synchronized</strong><span>VN-1182 / 2 SEC AGO</span></div>
+            <div class="message-line"><strong>Approaching vehicle detected</strong><span>VN-0764 / 7 SEC AGO</span>
+            </div>
+            <div class="message-line"><strong>Field stable</strong><span>SYSTEM / NOW</span></div>
+          </section>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script>
+    (() => { const vehicles = [{ id: 'VN-1182', label: 'Northbound commuter', distance: 84, heading: 18, speed: 62, x: -.34, depth: .34, status: 'LINKED', color: '#8ab99d' }, { id: 'VN-0764', label: 'Approaching vehicle', distance: 146, heading: 201, speed: 54, x: .28, depth: .56, status: 'LINKED', color: '#8ea9c0' }, { id: 'VN-3309', label: 'Rear awareness node', distance: 228, heading: 356, speed: 71, x: .08, depth: .78, status: 'CAUTION', color: '#c6a46a' }]; let selected = null, pulse = 0; const canvases = [document.getElementById('overview-canvas'), document.getElementById('radar-canvas')]; function setupCanvas(canvas) { const scene = canvas.parentElement, ctx = canvas.getContext('2d'); let w = 0, h = 0; function resize() { const r = scene.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2); w = r.width; h = r.height; canvas.width = w * d; canvas.height = h * d; canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; ctx.setTransform(d, 0, 0, d, 0, 0) } function project(v) { const horizon = h * .3, bottom = h * .88, y = horizon + v.depth * (bottom - horizon), road = 55 + v.depth * w * .7; return { x: w / 2 + v.x * road, y, size: 4 + v.depth * 9 } } function draw() { ctx.clearRect(0, 0, w, h); const horizon = h * .3, bottom = h * .92, c = w / 2, top = Math.max(20, w * .03), wide = w * .46; ctx.save(); ctx.strokeStyle = 'rgba(142,169,192,.22)'; ctx.beginPath(); ctx.moveTo(c - top, horizon); ctx.lineTo(c - wide, bottom); ctx.moveTo(c + top, horizon); ctx.lineTo(c + wide, bottom); ctx.stroke(); ctx.setLineDash([4, 14]); ctx.strokeStyle = 'rgba(232,242,244,.24)'; ctx.beginPath(); ctx.moveTo(c - top * .38, horizon); ctx.lineTo(c - wide * .38, bottom); ctx.moveTo(c + top * .38, horizon); ctx.lineTo(c + wide * .38, bottom); ctx.stroke(); ctx.setLineDash([]);[.2, .42, .66, .84].forEach(d => { const y = horizon + d * (bottom - horizon), half = top + d * (wide - top); ctx.strokeStyle = 'rgba(142,169,192,.14)'; ctx.beginPath(); ctx.moveTo(c - half, y); ctx.lineTo(c + half, y); ctx.stroke() });[.27, .5, .73].forEach((d, i) => { const y = horizon + d * (bottom - horizon), half = 40 + d * w * .3; ctx.strokeStyle = 'rgba(142,169,192,' + (0.18 - i * .03) + ')'; ctx.beginPath(); ctx.ellipse(c, y, half, 7 + d * 14, 0, Math.PI, Math.PI * 2); ctx.stroke(); ctx.fillStyle = '#81909e'; ctx.font = '9px Consolas'; ctx.fillText((i + 1) * 100 + ' M', c + half + 7, y + 3) }); ctx.restore(); vehicles.slice().sort((a, b) => b.depth - a.depth).forEach(v => { const p = project(v), focus = selected && selected.id === v.id; ctx.save(); if (focus) { ctx.strokeStyle = 'rgba(142,175,208,.8)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x, p.y, p.size + 9 + Math.sin(pulse) * 2, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y - p.size - 9); ctx.lineTo(p.x, p.y - p.size - 31); ctx.stroke() } ctx.fillStyle = v.color; ctx.shadowColor = v.color; ctx.shadowBlur = focus ? 16 : 7; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.fillStyle = '#edf2f4'; ctx.font = (focus ? 'bold ' : '') + Math.max(9, 10 + v.depth * 2) + 'px Consolas'; ctx.fillText(v.id, p.x + p.size + 8, p.y - 5); ctx.fillStyle = '#81909e'; ctx.font = '9px Consolas'; ctx.fillText(v.distance + ' M', p.x + p.size + 8, p.y + 9); ctx.restore() }); ctx.save(); const y = h * .86; ctx.fillStyle = '#dfeaec'; ctx.shadowColor = '#8ea9c0'; ctx.shadowBlur = 17; ctx.beginPath(); ctx.moveTo(c, y - 48); ctx.lineTo(c + 24, y + 30); ctx.lineTo(c + 15, y + 50); ctx.lineTo(c - 15, y + 50); ctx.lineTo(c - 24, y + 30); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; ctx.fillStyle = '#344857'; ctx.beginPath(); ctx.moveTo(c - 10, y - 27); ctx.lineTo(c + 10, y - 27); ctx.lineTo(c + 15, y + 15); ctx.lineTo(c - 15, y + 15); ctx.closePath(); ctx.fill(); ctx.restore(); if (!matchMedia('(prefers-reduced-motion: reduce)').matches) pulse += .05; requestAnimationFrame(draw) } function hit(e) { const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top; return vehicles.find(v => { const p = project(v); return Math.hypot(p.x - x, p.y - y) < Math.max(18, p.size + 12) }) } canvas.addEventListener('click', e => { const v = hit(e); if (v) focus(v) }); resize(); draw(); window.addEventListener('resize', resize) } function focus(v) { selected = v; document.querySelectorAll('.scene-canvas').forEach(c => c.closest('.hero,.radar-view').classList.add('is-focused')); const p = document.getElementById('focus-panel'), hero = document.querySelector('.hero'), r = hero.getBoundingClientRect(), x = Math.max(20, Math.min(70, ((r.width / 2 + v.x * r.width * .35) / r.width) * 100)), y = Math.max(25, Math.min(70, (.3 + v.depth * .55) * 100)); p.style.left = x + '%'; p.style.top = y + '%'; p.classList.add('is-open'); p.setAttribute('aria-hidden', 'false'); for (const [id, val] of Object.entries({ 'focus-id': v.id, 'focus-label': v.label, 'focus-distance': v.distance + ' M', 'focus-heading': String(v.heading).padStart(3, '0') + ' DEG', 'focus-speed': v.speed + ' KM/H', 'focus-connection': v.status })) document.getElementById(id).textContent = val } function close() { selected = null; document.querySelectorAll('.scene-canvas').forEach(c => c.closest('.hero,.radar-view').classList.remove('is-focused')); document.getElementById('focus-panel').classList.remove('is-open'); document.getElementById('focus-panel').setAttribute('aria-hidden', 'true') } function setView(name) { document.querySelectorAll('.view').forEach(v => v.classList.toggle('is-active', v.dataset.page === name)); document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('is-active', b.dataset.view === name)) } document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => setView(b.dataset.view))); document.querySelectorAll('[data-view-jump]').forEach(b => b.addEventListener('click', () => setView(b.dataset.viewJump))); document.getElementById('focus-close').addEventListener('click', close); document.getElementById('focus-target').addEventListener('click', e => e.target.textContent = 'TARGET LOCKED'); document.getElementById('focus-message').addEventListener('click', e => e.target.textContent = 'PING SENT'); document.querySelectorAll('[data-demo]').forEach(b => b.addEventListener('click', () => { const old = b.textContent; b.textContent = b.dataset.demo; setTimeout(() => b.textContent = old, 1100) })); canvases.forEach(setupCanvas) })();
+  </script>
+  <script>
+    document.querySelectorAll('.nav-btn,[data-view-jump]').forEach(function (button) { button.addEventListener('click', function () { window.dispatchEvent(new Event('resize')); }); });
+    const sharedFocusPanel = document.getElementById('focus-panel');
+    const originalCanvasFill = CanvasRenderingContext2D.prototype.fill;
+    CanvasRenderingContext2D.prototype.fill = function () { if (this.fillStyle === '#dfeaec' || this.fillStyle === '#344857') return; return originalCanvasFill.apply(this, arguments); };
+    function addCarModel(host) { const car = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); car.classList.add('car-model'); car.setAttribute('viewBox', '0 0 94 154'); car.setAttribute('aria-label', 'Your vehicle'); car.setAttribute('role', 'img'); car.innerHTML = '<defs><linearGradient id="carPaintLive" x1="0" x2="1"><stop offset="0" stop-color="#334b5b"/><stop offset=".5" stop-color="#dbe8e9"/><stop offset="1" stop-color="#405a6b"/></linearGradient></defs><g class="car-wheels"><rect class="car-wheel" x="7" y="32" width="12" height="31" rx="5"/><rect class="car-wheel" x="75" y="32" width="12" height="31" rx="5"/><rect class="car-wheel" x="7" y="91" width="12" height="31" rx="5"/><rect class="car-wheel" x="75" y="91" width="12" height="31" rx="5"/></g><path class="car-body" d="M47 5C34 5 25 17 22 34L17 111C16 130 28 145 47 149C66 145 78 130 77 111L72 34C69 17 60 5 47 5Z" fill="url(#carPaintLive)"/><path class="car-glass" d="M29 37C32 21 38 14 47 13C56 14 62 21 65 37L61 57H33Z"/><path class="car-glass" d="M32 67H62L67 108C61 116 55 120 47 121C39 120 33 116 27 108Z" opacity=".72"/><path class="car-detail" d="M24 61H70M25 126H69"/><path class="car-light" d="M25 20L34 15L31 29L24 32Z"/><path class="car-light" d="M69 20L60 15L63 29L70 32Z"/><text class="car-label" x="47" y="143" text-anchor="middle">YOU</text>'; host.appendChild(car); }
+    document.querySelectorAll('.hero,.radar-view').forEach(addCarModel);
+    const linkQuality = document.createElement('div');
+    linkQuality.className = 'top-value';
+    linkQuality.innerHTML = '<small>LINK QUALITY</small><strong>98.4%</strong>';
+    const liveStatus = document.querySelector('.top-actions .status');
+    if (liveStatus) liveStatus.before(linkQuality);
+    else document.querySelector('.top-actions')?.appendChild(linkQuality);
+    document.querySelectorAll('.focus-close').forEach(function (button) { button.textContent = 'x'; });
+    const overviewHero = document.querySelector('.hero');
+    const radarView = document.querySelector('.radar-view');
+    document.querySelectorAll('[data-view]').forEach(function (button) { button.addEventListener('click', function () { if (button.dataset.view === 'radar') radarView.appendChild(sharedFocusPanel); if (button.dataset.view === 'overview') overviewHero.appendChild(sharedFocusPanel); }); });
+  </script>
+  <script>
+    (() => {
+      const defaultPeers = [
+        { id: 'VN-1182', label: 'Northbound commuter', distance: 84, bearing: -34, heading: 18, speed: 62, status: 'LINKED', color: '#8ab99d' },
+        { id: 'VN-0764', label: 'Approaching vehicle', distance: 146, bearing: 58, heading: 201, speed: 54, status: 'LINKED', color: '#8ea9c0' },
+        { id: 'VN-3309', label: 'Rear awareness node', distance: 228, bearing: 8, heading: 356, speed: 71, status: 'CAUTION', color: '#c6a46a' }
+      ];
 
-  function getSeverityLevel(status) {
-    const normalized = String(status || 'LINKED').toUpperCase();
-    if (['HAZARD', 'CRITICAL', 'DANGER', 'EMERGENCY', 'ALERT', 'RED'].includes(normalized)) return 'hazard';
-    if (['CAUTION', 'WARNING', 'CHECK', 'LIMITED', 'ATTENTION', 'SLOW', 'AMBER'].includes(normalized)) return 'caution';
-    if (['NORMAL', 'INFO', 'LINKED', 'STABLE', 'ACTIVE', 'ONLINE', 'OK', 'GOOD', 'GREEN'].includes(normalized)) return 'healthy';
-    return 'healthy';
-  }
-
-  function getSeverityLabel(levelOrStatus) {
-    const level = getSeverityLevel(levelOrStatus);
-    if (level === 'hazard') return 'HAZARD';
-    if (level === 'caution') return 'CAUTION';
-    return 'STABLE';
-  }
-
-  function getPeerStatusColor(status, fallback = '#8ab99d') {
-    const level = getSeverityLevel(status);
-    if (level === 'hazard') return '#c97873';
-    if (level === 'caution') return '#c6a46a';
-    return fallback;
-  }
-
-  function setStatusBadge(level, labelText) {
-    const topStatus = document.querySelector('.status');
-    const statusText = topStatus ? topStatus.querySelector('span') : null;
-    if (topStatus) {
-      topStatus.classList.remove('healthy', 'caution', 'hazard');
-      topStatus.classList.add(level);
-    }
-    if (statusText) {
-      statusText.textContent = labelText;
-    }
-  }
-
-  const radarView = document.querySelector('.radar-view');
-  const source = document.getElementById('radar-canvas');
-  if (!radarView || !source) return;
-
-  radarView.querySelector('.car-model')?.remove();
-  const disc = document.createElement('div');
-  disc.className = 'radar-disc';
-  const canvas = document.createElement('canvas');
-  canvas.setAttribute('aria-label', '360 degree vehicle radar');
-  disc.appendChild(canvas);
-  radarView.insertBefore(disc, radarView.querySelector('.back-btn'));
-  const ctx = canvas.getContext('2d');
-  let selected = null;
-
-  function getCurrentPeers() {
-    const peers = APP_STATE.peers && APP_STATE.peers.length ? APP_STATE.peers : defaultPeers;
-    return peers.map((peer, i) => ({
-      ...peer,
-      color: getPeerStatusColor(peer.status, peer.color || ['#8ab99d', '#8ea9c0', '#c6a46a'][i % 3]),
-      heading: peer.heading ?? 18,
-      speed: peer.speed ?? 60,
-      status: peer.status ?? 'LINKED'
-    }));
-  }
-
-  function getStatusToneClass(status) {
-    return getSeverityLevel(status);
-  }
-
-  function applyTone(element, status) {
-    if (!element) return;
-    element.classList.remove('healthy', 'caution', 'hazard');
-    element.classList.add(getStatusToneClass(status));
-  }
-
-  function updateOverviewSummary() {
-    const peers = getCurrentPeers();
-    const liveCount = peers.length;
-    const rank = { healthy: 1, caution: 2, hazard: 3 };
-    const strongestPeerStatus = peers.reduce((worst, peer) => {
-      const current = getSeverityLevel(peer.status);
-      if (rank[current] > rank[worst]) return current;
-      return worst;
-    }, 'healthy');
-
-    const activeAlertLevel = APP_STATE.activeAlert ? getSeverityLevel(APP_STATE.activeAlert) : null;
-    const alertLevel = activeAlertLevel && rank[activeAlertLevel] >= rank[strongestPeerStatus] ? activeAlertLevel : strongestPeerStatus;
-    const statusLabel = getSeverityLabel(alertLevel);
-
-    const heading = document.querySelector('.hero-foot');
-    if (heading) {
-      heading.innerHTML = 'FIELD STATUS <b class="' + alertLevel + '">' + statusLabel + '</b> &nbsp; / &nbsp; ' + liveCount + ' NODE' + (liveCount === 1 ? '' : 'S') + ' IN RANGE';
-    }
-
-    const driver = document.querySelector('.metric-large');
-    if (driver) driver.innerHTML = APP_STATE.speed + ' <span>KM/H</span>';
-
-    const liveMeta = document.querySelector('.mini-item:nth-child(7) strong');
-    if (liveMeta) {
-      liveMeta.textContent = liveCount + ' ACTIVE';
-      applyTone(liveMeta, alertLevel);
-    }
-
-    setStatusBadge(alertLevel, statusLabel === 'STABLE' ? 'LIVE LINK' : statusLabel);
-  }
-
-  function getBackendHost() {
-    if (APP_STATE.customServerHost) return APP_STATE.customServerHost;
-    if (window.location.protocol === 'file:') return 'localhost:8081';
-    return window.location.host || 'localhost:8081';
-  }
-
-  function initWebSocket() {
-    const host = getBackendHost();
-    const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${host}/ws`;
-    try {
-      if (window.__vehiclenet_socket) {
-        window.__vehiclenet_socket.close();
-      }
-      window.__vehiclenet_socket = new WebSocket(wsUrl);
-      window.__vehiclenet_socket.addEventListener('open', () => {
-        window.__vehiclenet_socket.send(JSON.stringify({ type: 'REGISTER', id: APP_STATE.selfId, label: 'Driver Display Unit', heading: APP_STATE.heading, speed: APP_STATE.speed, commRangeMeters: APP_STATE.commRangeMeters }));
-      });
-      window.__vehiclenet_socket.addEventListener('message', (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'REGISTERED') {
-          APP_STATE.selfId = msg.id;
-          const idBadge = document.getElementById('focus-id');
-          if (idBadge) idBadge.textContent = msg.id;
-        }
-        if (msg.type === 'PEERS_UPDATE' && Array.isArray(msg.peers)) {
-          APP_STATE.peers = msg.peers.map((p) => ({
-            id: p.id,
-            label: p.label || 'Vehicle Node',
-            distance: p.distance,
-            bearing: p.bearing,
-            speed: p.speed,
-            status: p.status || 'NORMAL',
-            color: p.isRealClient ? '#8ea9c0' : '#8ab99d',
-            lastPing: 'Live Telemetry'
-          }));
-          updateOverviewSummary();
-          renderRadar();
-        }
-        if (msg.type === 'COMM_RECEIVE') {
-          const packet = msg.packet || {};
-          const currentStatus = String(packet.severity || 'INFO').toUpperCase();
-          APP_STATE.activeAlert = currentStatus;
-          const peers = getCurrentPeers();
-          const peerAlertLevel = peers.reduce((worst, peer) => {
-            const level = getSeverityLevel(peer.status);
-            return ['hazard', 'caution'].includes(level) && ['healthy', 'caution'].includes(worst) ? level : worst;
-          }, 'healthy');
-          const nextLevel = getSeverityLevel(currentStatus);
-          APP_STATE.activeAlert = ['hazard', 'caution'].includes(nextLevel) ? currentStatus : (peerAlertLevel === 'hazard' || peerAlertLevel === 'caution' ? peerAlertLevel : 'INFO');
-          updateOverviewSummary();
-        }
-      });
-    } catch (err) {
-      console.warn('WS init failed:', err);
-    }
-  }
-
-  function renderRadar() {
-    if (!canvas) return;
-    const nodes = getCurrentPeers();
-
-    function clamp(value, min, max) {
-      return Math.min(Math.max(value, min), max);
-    }
-
-    function toPoint(node) {
-      const size = canvas.clientWidth || canvas.width || 400;
-      const maxRadius = size * 0.42;
-      const distRatio = clamp((node.distance || 0) / APP_STATE.commRangeMeters, 0, 1);
-      const angle = ((Number(node.bearing || 0) || 0) - 90) * Math.PI / 180;
-      const radius = distRatio * maxRadius;
-      return {
-        x: size / 2 + Math.cos(angle) * radius,
-        y: size / 2 + Math.sin(angle) * radius,
-        r: 6 + distRatio * 2.5
+      const APP_STATE = {
+        selfId: 'VN-2047',
+        peers: [...defaultPeers],
+        selectedTargetId: null,
+        targetMode: 'broadcast',
+        commRangeMeters: 300,
+        speed: 68,
+        heading: 42,
+        isCooldownActive: false,
+        activeAlert: null,
+        audioEnabled: true,
+        customServerHost: localStorage.getItem('vehiclenet_custom_host') || null
       };
-    }
 
-    function draw() {
-      const size = canvas.clientWidth || canvas.width || 400;
-      if (!size) return;
-      const cx = size / 2;
-      const cy = size / 2;
-      const maxRadius = size * 0.42;
-
-      ctx.clearRect(0, 0, size, size);
-
-      const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius * 1.25);
-      bg.addColorStop(0, 'rgba(25, 43, 58, 0.72)');
-      bg.addColorStop(0.55, 'rgba(17, 26, 35, 0.8)');
-      bg.addColorStop(1, 'rgba(6, 10, 16, 0.96)');
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, size, size);
-
-      for (let i = 1; i <= 5; i++) {
-        const radius = (maxRadius / 5) * i;
-        ctx.beginPath();
-        ctx.strokeStyle = 'rgba(142,169,192,.14)';
-        ctx.lineWidth = 1;
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.stroke();
+      function getSeverityLevel(status) {
+        const normalized = String(status || 'LINKED').toUpperCase();
+        if (['HAZARD', 'CRITICAL', 'DANGER', 'EMERGENCY', 'ALERT', 'RED'].includes(normalized)) return 'hazard';
+        if (['CAUTION', 'WARNING', 'CHECK', 'LIMITED', 'ATTENTION', 'SLOW', 'AMBER'].includes(normalized)) return 'caution';
+        if (['NORMAL', 'INFO', 'LINKED', 'STABLE', 'ACTIVE', 'ONLINE', 'OK', 'GOOD', 'GREEN'].includes(normalized)) return 'healthy';
+        return 'healthy';
       }
 
-      for (let i = 0; i < 12; i++) {
-        const angle = (i / 12) * Math.PI * 2;
-        const x = cx + Math.cos(angle) * maxRadius;
-        const y = cy + Math.sin(angle) * maxRadius;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(x, y);
-        ctx.strokeStyle = 'rgba(142,169,192,.10)';
-        ctx.stroke();
+      function getSeverityLabel(levelOrStatus) {
+        const level = getSeverityLevel(levelOrStatus);
+        if (level === 'hazard') return 'HAZARD';
+        if (level === 'caution') return 'CAUTION';
+        return 'STABLE';
       }
 
-      const sweep = (Date.now() * 0.06) % 360;
-      const sweepRad = (sweep - 90) * Math.PI / 180;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, maxRadius, sweepRad - 0.42, sweepRad + 0.42);
-      ctx.closePath();
-      const sweepGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius);
-      sweepGradient.addColorStop(0, 'rgba(125, 197, 255, 0.18)');
-      sweepGradient.addColorStop(1, 'rgba(125, 197, 255, 0.0)');
-      ctx.fillStyle = sweepGradient;
-      ctx.fill();
+      function getPeerStatusColor(status, fallback = '#8ab99d') {
+        const level = getSeverityLevel(status);
+        if (level === 'hazard') return '#c97873';
+        if (level === 'caution') return '#c6a46a';
+        return fallback;
+      }
 
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + Math.cos(sweepRad) * maxRadius, cy + Math.sin(sweepRad) * maxRadius);
-      ctx.strokeStyle = 'rgba(142, 209, 255, 0.9)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      nodes.forEach((node) => {
-        const p = toPoint(node);
-        const active = selected && selected.id === node.id;
-        const pulse = 1 + Math.sin(Date.now() / 360 + (node.distance || 0)) * 0.18;
-        const ring = active ? 18 : 12;
-        const radius = Math.max(5, (p.r || 6) * pulse);
-
-        ctx.beginPath();
-        ctx.fillStyle = node.color || '#8ab99d';
-        ctx.shadowColor = node.color || '#8ab99d';
-        ctx.shadowBlur = active ? 18 : 12;
-        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.strokeStyle = active ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.32)';
-        ctx.lineWidth = active ? 1.7 : 1;
-        ctx.arc(p.x, p.y, ring + pulse * 4, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.strokeStyle = (node.color || '#8ab99d') + '55';
-        ctx.lineWidth = 1;
-        ctx.arc(p.x, p.y, ring + 10, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        if (active || node.distance < 180) {
-          ctx.fillStyle = '#eaf3ff';
-          ctx.font = active ? '600 11px Segoe UI' : '11px Segoe UI';
-          ctx.fillText(node.id, p.x + 10, p.y - 8);
-          ctx.fillStyle = '#82a0b2';
-          ctx.font = '10px Consolas';
-          ctx.fillText(node.distance + ' M', p.x + 10, p.y + 8);
+      function setStatusBadge(level, labelText) {
+        const topStatus = document.querySelector('.status');
+        const statusText = topStatus ? topStatus.querySelector('span') : null;
+        if (topStatus) {
+          topStatus.classList.remove('healthy', 'caution', 'hazard');
+          topStatus.classList.add(level);
         }
-      });
-    }
-
-    function openFocus(node) {
-      selected = node;
-      const p = toPoint(node);
-      const x = p.x / (canvas.clientWidth || 1) * 100;
-      const y = p.y / (canvas.clientHeight || 1) * 100;
-      disc.classList.add('is-focused');
-      disc.style.transformOrigin = x + '% ' + y + '%';
-      const panel = document.getElementById('focus-panel');
-      if (panel) {
-        radarView.appendChild(panel);
-        panel.style.left = Math.max(18, Math.min(70, x)) + '%';
-        panel.style.top = Math.max(22, Math.min(72, y)) + '%';
-        panel.classList.add('is-open');
-        panel.setAttribute('aria-hidden', 'false');
-        document.getElementById('focus-id').textContent = node.id;
-        document.getElementById('focus-label').textContent = node.label;
-        document.getElementById('focus-distance').textContent = node.distance + ' M';
-        document.getElementById('focus-heading').textContent = String(node.heading || 0).padStart(3, '0') + ' DEG';
-        document.getElementById('focus-speed').textContent = node.speed + ' KM/H';
-        document.getElementById('focus-connection').textContent = node.status || 'LINKED';
+        if (statusText) {
+          statusText.textContent = labelText;
+        }
       }
-      draw();
-    }
 
-    const resize = () => {
-      const r = disc.getBoundingClientRect();
-      const d = Math.min(devicePixelRatio || 1, 2);
-      const size = Math.min(r.width, r.height);
-      canvas.width = size * d;
-      canvas.height = size * d;
-      ctx.setTransform(d, 0, 0, d, 0, 0);
-      draw();
-    };
+      const radarView = document.querySelector('.radar-view');
+      const source = document.getElementById('radar-canvas');
+      if (!radarView || !source) return;
 
-    canvas.addEventListener('click', (event) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      const node = nodes.find((item) => {
-        const p = toPoint(item);
-        return Math.hypot(p.x - x, p.y - y) < 16;
+      radarView.querySelector('.car-model')?.remove();
+      const disc = document.createElement('div');
+      disc.className = 'radar-disc';
+      const canvas = document.createElement('canvas');
+      canvas.setAttribute('aria-label', '360 degree vehicle radar');
+      disc.appendChild(canvas);
+      radarView.insertBefore(disc, radarView.querySelector('.back-btn'));
+      const ctx = canvas.getContext('2d');
+      let selected = null;
+
+      function getCurrentPeers() {
+        const peers = APP_STATE.peers && APP_STATE.peers.length ? APP_STATE.peers : defaultPeers;
+        return peers.map((peer, i) => ({
+          ...peer,
+          color: getPeerStatusColor(peer.status, peer.color || ['#8ab99d', '#8ea9c0', '#c6a46a'][i % 3]),
+          heading: peer.heading ?? 18,
+          speed: peer.speed ?? 60,
+          status: peer.status ?? 'LINKED'
+        }));
+      }
+
+      function getStatusToneClass(status) {
+        return getSeverityLevel(status);
+      }
+
+      function applyTone(element, status) {
+        if (!element) return;
+        element.classList.remove('healthy', 'caution', 'hazard');
+        element.classList.add(getStatusToneClass(status));
+      }
+
+      function updateOverviewSummary() {
+        const peers = getCurrentPeers();
+        const liveCount = peers.length;
+        const rank = { healthy: 1, caution: 2, hazard: 3 };
+        const strongestPeerStatus = peers.reduce((worst, peer) => {
+          const current = getSeverityLevel(peer.status);
+          if (rank[current] > rank[worst]) return current;
+          return worst;
+        }, 'healthy');
+
+        const activeAlertLevel = APP_STATE.activeAlert ? getSeverityLevel(APP_STATE.activeAlert) : null;
+        const alertLevel = activeAlertLevel && rank[activeAlertLevel] >= rank[strongestPeerStatus] ? activeAlertLevel : strongestPeerStatus;
+        const statusLabel = getSeverityLabel(alertLevel);
+
+        const heading = document.querySelector('.hero-foot');
+        if (heading) {
+          heading.innerHTML = 'FIELD STATUS <b class="' + alertLevel + '">' + statusLabel + '</b> &nbsp; / &nbsp; ' + liveCount + ' NODE' + (liveCount === 1 ? '' : 'S') + ' IN RANGE';
+        }
+
+        const driver = document.querySelector('.metric-large');
+        if (driver) driver.innerHTML = APP_STATE.speed + ' <span>KM/H</span>';
+
+        const liveMeta = document.querySelector('.mini-item:nth-child(7) strong');
+        if (liveMeta) {
+          liveMeta.textContent = liveCount + ' ACTIVE';
+          applyTone(liveMeta, alertLevel);
+        }
+
+        setStatusBadge(alertLevel, statusLabel === 'STABLE' ? 'LIVE LINK' : statusLabel);
+      }
+
+      function getBackendHost() {
+        if (APP_STATE.customServerHost) return APP_STATE.customServerHost;
+        if (window.location.protocol === 'file:') return 'localhost:8081';
+        return window.location.host || 'localhost:8081';
+      }
+
+      function initWebSocket() {
+        const host = getBackendHost();
+        const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${host}/ws`;
+        try {
+          if (window.__vehiclenet_socket) {
+            window.__vehiclenet_socket.close();
+          }
+          window.__vehiclenet_socket = new WebSocket(wsUrl);
+          window.__vehiclenet_socket.addEventListener('open', () => {
+            window.__vehiclenet_socket.send(JSON.stringify({ type: 'REGISTER', id: APP_STATE.selfId, label: 'Driver Display Unit', heading: APP_STATE.heading, speed: APP_STATE.speed, commRangeMeters: APP_STATE.commRangeMeters }));
+          });
+          window.__vehiclenet_socket.addEventListener('message', (event) => {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'REGISTERED') {
+              APP_STATE.selfId = msg.id;
+              const idBadge = document.getElementById('focus-id');
+              if (idBadge) idBadge.textContent = msg.id;
+            }
+            if (msg.type === 'PEERS_UPDATE' && Array.isArray(msg.peers)) {
+              APP_STATE.peers = msg.peers.map((p) => ({
+                id: p.id,
+                label: p.label || 'Vehicle Node',
+                distance: p.distance,
+                bearing: p.bearing,
+                speed: p.speed,
+                status: p.status || 'NORMAL',
+                color: p.isRealClient ? '#8ea9c0' : '#8ab99d',
+                lastPing: 'Live Telemetry'
+              }));
+              updateOverviewSummary();
+              renderRadar();
+            }
+            if (msg.type === 'COMM_RECEIVE') {
+              const packet = msg.packet || {};
+              const currentStatus = String(packet.severity || 'INFO').toUpperCase();
+              APP_STATE.activeAlert = currentStatus;
+              const peers = getCurrentPeers();
+              const peerAlertLevel = peers.reduce((worst, peer) => {
+                const level = getSeverityLevel(peer.status);
+                return ['hazard', 'caution'].includes(level) && ['healthy', 'caution'].includes(worst) ? level : worst;
+              }, 'healthy');
+              const nextLevel = getSeverityLevel(currentStatus);
+              APP_STATE.activeAlert = ['hazard', 'caution'].includes(nextLevel) ? currentStatus : (peerAlertLevel === 'hazard' || peerAlertLevel === 'caution' ? peerAlertLevel : 'INFO');
+              updateOverviewSummary();
+            }
+          });
+        } catch (err) {
+          console.warn('WS init failed:', err);
+        }
+      }
+
+      function renderRadar() {
+        if (!canvas) return;
+        const nodes = getCurrentPeers();
+
+        function clamp(value, min, max) {
+          return Math.min(Math.max(value, min), max);
+        }
+
+        function toPoint(node) {
+          const size = canvas.clientWidth || canvas.width || 400;
+          const maxRadius = size * 0.42;
+          const distRatio = clamp((node.distance || 0) / APP_STATE.commRangeMeters, 0, 1);
+          const angle = ((Number(node.bearing || 0) || 0) - 90) * Math.PI / 180;
+          const radius = distRatio * maxRadius;
+          return {
+            x: size / 2 + Math.cos(angle) * radius,
+            y: size / 2 + Math.sin(angle) * radius,
+            r: 6 + distRatio * 2.5
+          };
+        }
+
+        function draw() {
+          const size = canvas.clientWidth || canvas.width || 400;
+          if (!size) return;
+          const cx = size / 2;
+          const cy = size / 2;
+          const maxRadius = size * 0.42;
+
+          ctx.clearRect(0, 0, size, size);
+
+          const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius * 1.25);
+          bg.addColorStop(0, 'rgba(25, 43, 58, 0.72)');
+          bg.addColorStop(0.55, 'rgba(17, 26, 35, 0.8)');
+          bg.addColorStop(1, 'rgba(6, 10, 16, 0.96)');
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, size, size);
+
+          for (let i = 1; i <= 5; i++) {
+            const radius = (maxRadius / 5) * i;
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(142,169,192,.14)';
+            ctx.lineWidth = 1;
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
+          for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const x = cx + Math.cos(angle) * maxRadius;
+            const y = cy + Math.sin(angle) * maxRadius;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = 'rgba(142,169,192,.10)';
+            ctx.stroke();
+          }
+
+          const sweep = (Date.now() * 0.06) % 360;
+          const sweepRad = (sweep - 90) * Math.PI / 180;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.arc(cx, cy, maxRadius, sweepRad - 0.42, sweepRad + 0.42);
+          ctx.closePath();
+          const sweepGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius);
+          sweepGradient.addColorStop(0, 'rgba(125, 197, 255, 0.18)');
+          sweepGradient.addColorStop(1, 'rgba(125, 197, 255, 0.0)');
+          ctx.fillStyle = sweepGradient;
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(sweepRad) * maxRadius, cy + Math.sin(sweepRad) * maxRadius);
+          ctx.strokeStyle = 'rgba(142, 209, 255, 0.9)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          nodes.forEach((node) => {
+            const p = toPoint(node);
+            const active = selected && selected.id === node.id;
+            const pulse = 1 + Math.sin(Date.now() / 360 + (node.distance || 0)) * 0.18;
+            const ring = active ? 18 : 12;
+            const radius = Math.max(5, (p.r || 6) * pulse);
+
+            ctx.beginPath();
+            ctx.fillStyle = node.color || '#8ab99d';
+            ctx.shadowColor = node.color || '#8ab99d';
+            ctx.shadowBlur = active ? 18 : 12;
+            ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.strokeStyle = active ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.32)';
+            ctx.lineWidth = active ? 1.7 : 1;
+            ctx.arc(p.x, p.y, ring + pulse * 4, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.strokeStyle = (node.color || '#8ab99d') + '55';
+            ctx.lineWidth = 1;
+            ctx.arc(p.x, p.y, ring + 10, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            if (active || node.distance < 180) {
+              ctx.fillStyle = '#eaf3ff';
+              ctx.font = active ? '600 11px Segoe UI' : '11px Segoe UI';
+              ctx.fillText(node.id, p.x + 10, p.y - 8);
+              ctx.fillStyle = '#82a0b2';
+              ctx.font = '10px Consolas';
+              ctx.fillText(node.distance + ' M', p.x + 10, p.y + 8);
+            }
+          });
+        }
+
+        function openFocus(node) {
+          selected = node;
+          const p = toPoint(node);
+          const x = p.x / (canvas.clientWidth || 1) * 100;
+          const y = p.y / (canvas.clientHeight || 1) * 100;
+          disc.classList.add('is-focused');
+          disc.style.transformOrigin = x + '% ' + y + '%';
+          const panel = document.getElementById('focus-panel');
+          if (panel) {
+            radarView.appendChild(panel);
+            panel.style.left = Math.max(18, Math.min(70, x)) + '%';
+            panel.style.top = Math.max(22, Math.min(72, y)) + '%';
+            panel.classList.add('is-open');
+            panel.setAttribute('aria-hidden', 'false');
+            document.getElementById('focus-id').textContent = node.id;
+            document.getElementById('focus-label').textContent = node.label;
+            document.getElementById('focus-distance').textContent = node.distance + ' M';
+            document.getElementById('focus-heading').textContent = String(node.heading || 0).padStart(3, '0') + ' DEG';
+            document.getElementById('focus-speed').textContent = node.speed + ' KM/H';
+            document.getElementById('focus-connection').textContent = node.status || 'LINKED';
+          }
+          draw();
+        }
+
+        const resize = () => {
+          const r = disc.getBoundingClientRect();
+          const d = Math.min(devicePixelRatio || 1, 2);
+          const size = Math.min(r.width, r.height);
+          canvas.width = size * d;
+          canvas.height = size * d;
+          ctx.setTransform(d, 0, 0, d, 0, 0);
+          draw();
+        };
+
+        canvas.addEventListener('click', (event) => {
+          const rect = canvas.getBoundingClientRect();
+          const x = event.clientX - rect.left;
+          const y = event.clientY - rect.top;
+          const node = nodes.find((item) => {
+            const p = toPoint(item);
+            return Math.hypot(p.x - x, p.y - y) < 16;
+          });
+          if (node) openFocus(node);
+        });
+
+        document.getElementById('focus-close')?.addEventListener('click', () => {
+          selected = null;
+          disc.classList.remove('is-focused');
+          const panel = document.getElementById('focus-panel');
+          if (panel) panel.classList.remove('is-open');
+          draw();
+        });
+
+        window.addEventListener('resize', resize);
+        resize();
+        requestAnimationFrame(function animate() {
+          draw();
+          requestAnimationFrame(animate);
+        });
+      }
+
+      window.addEventListener('DOMContentLoaded', () => {
+        updateOverviewSummary();
+        renderRadar();
+        initWebSocket();
       });
-      if (node) openFocus(node);
-    });
+    })();
+  </script>
+</body>
 
-    document.getElementById('focus-close')?.addEventListener('click', () => {
-      selected = null;
-      disc.classList.remove('is-focused');
-      const panel = document.getElementById('focus-panel');
-      if (panel) panel.classList.remove('is-open');
-      draw();
-    });
-
-    window.addEventListener('resize', resize);
-    resize();
-    requestAnimationFrame(function animate() {
-      draw();
-      requestAnimationFrame(animate);
-    });
-  }
-
-  window.addEventListener('DOMContentLoaded', () => {
-    updateOverviewSummary();
-    renderRadar();
-    initWebSocket();
-  });
-})();
-</script>
-</body></html>
+</html>
