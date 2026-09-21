@@ -7,14 +7,14 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const COOLDOWN_MS = 3500; // 3.5 seconds anti-spam rate limit per vehicle node
 
-// Path to frontend HTML file located in parent directory
-const FRONTEND_FILE = path.join(__dirname, '..', 'vehiclenet_limited_communication_hud.html');
+// Path to the newer frontend HTML file located in the parent directory
+const FRONTEND_FILE = path.join(__dirname, '..', 'vehiclenet_spatial_concept.html');
 const FRONTEND_DIR = path.join(__dirname, '..');
 
 // Serve static files from parent frontend directory
 app.use(express.static(FRONTEND_DIR));
 
-// Default route serves the HUD interface
+// Default route serves the cleaner spatial dashboard interface
 app.get('/', (req, res) => {
     res.sendFile(FRONTEND_FILE);
 });
